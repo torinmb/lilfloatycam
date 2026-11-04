@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lil Floaty Cam: Floating Webcam with Background Removal for Mac</title>
+<meta name="description" content="Lil Floaty Cam is a lightweight native Mac app that removes your webcam background in real time and floats your cutout over any app, even full screen. Made for tutorials, demos, streaming and screen recordings. No green screen, no compositing.">
+<meta name="keywords" content="floating webcam mac, webcam background removal mac, transparent webcam overlay, facecam for screen recording, talking head mac app, camera bubble, Loom alternative, OBS facecam, tutorial recording">
+<link rel="canonical" href="https://torinmb.github.io/lilfloatycam/">
+<meta name="theme-color" content="#eef8f3">
+<meta name="author" content="Torin Blankensmith">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Lil Floaty Cam">
+<meta property="og:title" content="Lil Floaty Cam: float your webcam cutout over any Mac app">
+<meta property="og:description" content="Real-time webcam background removal that floats just you over any app. Perfect for tutorials, demos and streaming. No green screen, no compositing.">
+<meta property="og:url" content="https://torinmb.github.io/lilfloatycam/">
+<meta property="og:image" content="https://torinmb.github.io/lilfloatycam/assets/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Lil Floaty Cam floating a background-removed webcam cutout in the corner of a Mac desktop">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Lil Floaty Cam: float your webcam cutout over any Mac app">
+<meta name="twitter:description" content="Real-time webcam background removal that floats just you over any app. No green screen, no compositing.">
+<meta name="twitter:image" content="https://torinmb.github.io/lilfloatycam/assets/img/og.jpg">
+
+<link rel="icon" type="image/png" sizes="64x64" href="assets/img/favicon-64.png">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+<link rel="preconnect" href="https://i.ytimg.com">
+<link rel="stylesheet" href="assets/site.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://torinmb.github.io/lilfloatycam/#app",
+      "name": "Lil Floaty Cam",
+      "url": "https://torinmb.github.io/lilfloatycam/",
+      "description": "A lightweight native Mac app that removes your webcam background in real time and floats your cutout over any app, even in full screen. Made for tutorials, demos, streaming and screen recordings.",
+      "applicationCategory": "MultimediaApplication",
+      "operatingSystem": "macOS 14 Sonoma or later",
+      "softwareVersion": "1.9.1",
+      "image": "https://torinmb.github.io/lilfloatycam/assets/img/icon-512.png",
+      "screenshot": [
+        "https://torinmb.github.io/lilfloatycam/assets/img/cutout.webp",
+        "https://torinmb.github.io/lilfloatycam/assets/img/menu.webp",
+        "https://torinmb.github.io/lilfloatycam/assets/img/frame.webp"
+      ],
+      "releaseNotes": "https://torinmb.github.io/lilfloatycam/changelog/",
+      "offers": {
+        "@type": "Offer",
+        "price": "3.99",
+        "priceCurrency": "USD",
+        "url": "https://www.patreon.com/blankensmithing/posts/lil-floaty-cam-174189269",
+        "availability": "https://schema.org/InStock"
+      },
+      "author": { "@type": "Person", "name": "Torin Blankensmith", "url": "https://www.youtube.com/@blankensmithing" },
+      "publisher": { "@type": "Organization", "name": "Blankensmithing LLC" }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "Do I need a green screen?", "acceptedAnswer": { "@type": "Answer", "text": "No. Lil Floaty Cam removes your background in real time using your Mac's built-in machine learning. It works in a normal room with a normal webcam." } },
+        { "@type": "Question", "name": "Which screen recorders does it work with?", "acceptedAnswer": { "@type": "Answer", "text": "All of them. Lil Floaty Cam is a regular window floating above your apps, so anything that records or shares your screen picks it up: QuickTime Player, the macOS screenshot toolbar, OBS, ScreenFlow, and screen sharing in Zoom, Meet or Teams." } },
+        { "@type": "Question", "name": "Can I use my iPhone as the camera?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Lil Floaty Cam works with any camera your Mac sees, including the built-in FaceTime camera, USB webcams, and your iPhone with Continuity Camera." } },
+        { "@type": "Question", "name": "Which Macs are supported?", "acceptedAnswer": { "@type": "Answer", "text": "Any Mac running macOS 14 Sonoma or later. It runs natively on both Apple silicon and Intel Macs." } },
+        { "@type": "Question", "name": "Is it a subscription?", "acceptedAnswer": { "@type": "Answer", "text": "No. Lil Floaty Cam is a one-time $3.99 purchase with free lifetime updates. It's also free for members on a paid Patreon tier." } },
+        { "@type": "Question", "name": "Is my video uploaded anywhere?", "acceptedAnswer": { "@type": "Answer", "text": "Never. Background removal runs entirely on your Mac. There's no account, no cloud processing, no analytics and no tracking." } },
+        { "@type": "Question", "name": "How is this different from Loom?", "acceptedAnswer": { "@type": "Answer", "text": "Loom records and uploads your video for you. Lil Floaty Cam does one thing: it floats your camera, with the background removed, over your screen. Record with whatever tool you already like, and keep your files on your Mac." } }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <radialGradient id="pad-fill" cx="40%" cy="38%" r="70%">
+      <stop offset="0" stop-color="#43b56d"/>
+      <stop offset="0.7" stop-color="#2a9a55"/>
+      <stop offset="1" stop-color="#1c7a42"/>
+    </radialGradient>
+    <linearGradient id="petal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe680"/>
+      <stop offset="1" stop-color="#f6a821"/>
+    </linearGradient>
+    <symbol id="lily-pad" viewBox="0 0 100 100">
+      <path d="M50 50 L57.99 4.7 A46 46 0 1 1 42.01 4.7 Z" fill="url(#pad-fill)" stroke="#156536" stroke-width="1.6" stroke-linejoin="round"/>
+      <g stroke="#7fd69c" stroke-opacity="0.45" stroke-width="1.4" stroke-linecap="round" fill="none">
+        <path d="M50 50 L84 30"/><path d="M50 50 L92 56"/><path d="M50 50 L76 86"/>
+        <path d="M50 50 L44 94"/><path d="M50 50 L14 78"/><path d="M50 50 L8 46"/><path d="M50 50 L22 18"/>
+      </g>
+    </symbol>
+    <symbol id="lotus" viewBox="0 0 100 100">
+      <g transform="translate(50 52)">
+        <ellipse rx="7" ry="17" fill="url(#petal)" transform="rotate(-60) translate(0 -10)"/>
+        <ellipse rx="7" ry="17" fill="url(#petal)" transform="rotate(60) translate(0 -10)"/>
+        <ellipse rx="7" ry="17" fill="url(#petal)" transform="rotate(-30) translate(0 -11)"/>
+        <ellipse rx="7" ry="17" fill="url(#petal)" transform="rotate(30) translate(0 -11)"/>
+        <ellipse rx="7.5" ry="18" fill="url(#petal)" transform="translate(0 -12)"/>
+        <circle r="5" fill="#f39b1c"/>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+<div id="pads" aria-hidden="true"></div>
+
+<header class="nav">
+  <a class="brand" href="./" aria-label="Lil Floaty Cam home">
+    <img src="assets/img/icon-512.webp" alt="" width="34" height="34">
+    Lil Floaty Cam
+  </a>
+  <nav class="nav-links" aria-label="Main">
+    <a href="#how">How it works</a>
+    <a href="#features">Features</a>
+    <a href="#faq">FAQ</a>
+    <a href="changelog/">Changelog</a>
+  </nav>
+  <a class="btn btn-primary" href="https://www.patreon.com/blankensmithing/posts/lil-floaty-cam-174189269">Download</a>
+</header>
+
+<main id="main" class="content">
+
+  <!-- 1. Hero -->
+  <section class="page hero" aria-labelledby="hero-title">
+    <div class="panel hero-card">
+      <button class="hero-icon" type="button" aria-label="Make a splash">
+        <img src="assets/img/icon-512.webp" alt="Lil Floaty Cam app icon: a camera blooming from a lotus on a lily pad" width="112" height="112" fetchpriority="high">
+      </button>
+      <h1 id="hero-title">Lil Floaty Cam</h1>
+      <p class="tagline">Float your webcam cutout over any Mac app.</p>
+      <p class="lede">Lil Floaty Cam removes your webcam background in real time and floats just you over your screen. Hit record in the screen recorder you already use. No green screen, no compositing, no editing.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://www.patreon.com/blankensmithing/posts/lil-floaty-cam-174189269">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
+          Download for Mac <span class="price">$3.99</span>
+        </a>
+        <a class="btn btn-ghost" href="https://www.patreon.com/blankensmithing/membership">Free for Patreon members</a>
+      </div>
+      <p class="fine"><span>macOS 14 Sonoma or later</span><span>Apple silicon &amp; Intel</span><span>Free lifetime updates</span></p>
+    </div>
+
+    <div class="video" id="video">
+      <button type="button" aria-label="Play the Lil Floaty Cam demo video">
+        <img src="https://i.ytimg.com/vi/YaUiPEDGeIY/maxresdefault.jpg" alt="Lil Floaty Cam demo video thumbnail" width="1280" height="720" loading="lazy">
+        <span class="play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg></span>
+      </button>
+      <noscript><iframe src="https://www.youtube-nocookie.com/embed/YaUiPEDGeIY" title="Lil Floaty Cam (Mac App for Tutorials + Demos)" allowfullscreen></iframe></noscript>
+    </div>
+  </section>
+
+  <!-- 2. How it works -->
+  <section class="page" id="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">How it works</p>
+        <h2 id="how-title">One screen recording. You’re already in it.</h2>
+        <p>Skip the second camera track and the compositing in post. Float yourself over your work and record it all at once.</p>
+      </div>
+      <ol class="steps" style="list-style:none;padding:0;margin:0">
+        <li class="panel step">
+          <div class="step-num" aria-hidden="true">1</div>
+          <h3>Open Lil Floaty Cam</h3>
+          <p>It lives in your menu bar. Pick any camera, including your iPhone with Continuity Camera.</p>
+        </li>
+        <li class="panel step">
+          <div class="step-num" aria-hidden="true">2</div>
+          <h3>Float yourself anywhere</h3>
+          <p>Drag, resize and round the corners. You stay on top of every app, even full-screen ones.</p>
+        </li>
+        <li class="panel step">
+          <div class="step-num" aria-hidden="true">3</div>
+          <h3>Hit record</h3>
+          <p>Use QuickTime, OBS, the screenshot toolbar or a video call. Your camera is already composited in.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 3. Features -->
+  <section class="page" id="features" aria-labelledby="features-title">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Features</p>
+        <h2 id="features-title">Just you, floating over your work</h2>
+        <p>Made to feel seamless, and to stay out of your way while you work.</p>
+      </div>
+
+      <article class="panel feature">
+        <div>
+          <h3>Real-time background removal, no green screen</h3>
+          <p>Your background disappears live, right on your Mac. Viewers see your face and your work together, with nothing in the way.</p>
+          <ul class="ticks">
+            <li>Runs entirely on your Mac, nothing is uploaded</li>
+            <li>Refine Edges snaps the cutout to your hair and shoulders</li>
+            <li>Edge Stability cuts down on flicker</li>
+            <li>Fast, Balanced or Best quality to suit your Mac</li>
+          </ul>
+        </div>
+        <figure>
+          <img src="assets/img/cutout.webp" alt="A webcam cutout with the background removed, floating over a Mac desktop" width="1600" height="1000" loading="lazy">
+        </figure>
+      </article>
+
+      <article class="panel feature flip">
+        <div>
+          <h3>Stays out of your way</h3>
+          <p>Float over any app, even full screen, and keep clicking whatever’s behind you.</p>
+          <ul class="ticks">
+            <li>Click-through: only your cutout catches clicks</li>
+            <li>Hides automatically when your mouse gets close</li>
+            <li>Streaming Mode hides every border, handle and button</li>
+            <li>Drag, resize and reposition from the menu bar</li>
+          </ul>
+        </div>
+        <figure>
+          <img src="assets/img/menu.webp" alt="The Lil Floaty Cam menu bar controls for camera, aspect ratio, size and streaming mode" width="1600" height="1000" loading="lazy">
+        </figure>
+      </article>
+
+      <article class="panel feature">
+        <div>
+          <h3>Prefer a classic camera bubble?</h3>
+          <p>Turn background removal off for a framed webcam with any shape you like.</p>
+          <ul class="ticks">
+            <li>Slide the corners from square to a perfect circle</li>
+            <li>Pick an aspect ratio straight from the menu</li>
+            <li>Mirror your video</li>
+            <li>Works with the built-in camera, USB webcams and your iPhone</li>
+          </ul>
+        </div>
+        <figure>
+          <img src="assets/img/frame.webp" alt="A round webcam bubble in the corner of a Mac desktop" width="1600" height="1000" loading="lazy">
+        </figure>
+      </article>
+
+      <article class="panel feature toss" style="display:block">
+        <h3>Toss yourself around</h3>
+        <p>A playful little physics system lets you fling the camera across your screen. It glides, bounces off the edges and settles with a liquid ripple, like the ones on this page.</p>
+        <span class="hint">Try it: click the water, or grab a lily pad and throw it.</span>
+      </article>
+    </div>
+  </section>
+
+  <!-- 4. Made for + story -->
+  <section class="page" id="why" aria-labelledby="why-title">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Made for</p>
+        <h2 id="why-title">Tutorials, demos and showing your work</h2>
+      </div>
+      <ul class="chips">
+        <li>Tutorials</li><li>Screen recordings</li><li>Live streams</li><li>Product demos</li>
+        <li>Online classes</li><li>Client walkthroughs</li><li>Async video updates</li>
+        <li>Bug reports</li><li>Presentations</li><li>Screen sharing on calls</li>
+      </ul>
+      <div class="panel story">
+        <p>I built Lil Floaty Cam to make my own tutorials easier to make. I wanted one screen capture with my camera already on top, instead of juggling separate recordings in post.</p>
+        <p>When I show clients how something works, I usually reach for a tool like Loom, but all I really use is my camera floating over my screen. So I made a lightweight app that does exactly that.</p>
+        <div class="sig">
+          <img src="assets/img/icon-512.webp" alt="" width="48" height="48" loading="lazy">
+          <div>Torin Blankensmith<small>Creative technologist, maker of Lil Floaty Cam</small></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Private + price -->
+  <section class="page" id="pricing" aria-labelledby="pricing-title">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Private &amp; simple</p>
+        <h2 id="pricing-title">Buy it once. Keep it forever.</h2>
+      </div>
+      <div class="duo">
+        <div class="panel">
+          <h3>Private by design</h3>
+          <p>Your camera feed never leaves your Mac. Lil Floaty Cam has no account, no cloud processing, no analytics and no tracking. It collects no data at all.</p>
+          <p><a href="privacy/">Read the privacy policy</a></p>
+        </div>
+        <div class="panel">
+          <h3>One small price</h3>
+          <p class="big-price">$3.99 <small>one time</small></p>
+          <p>Free lifetime updates, delivered automatically. No subscription. Free for members on a paid Patreon tier.</p>
+          <div class="cta-row" style="justify-content:flex-start">
+            <a class="btn btn-primary" href="https://www.patreon.com/blankensmithing/posts/lil-floaty-cam-174189269">Get Lil Floaty Cam</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. FAQ -->
+  <section class="page" id="faq" aria-labelledby="faq-title">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">FAQ</p>
+        <h2 id="faq-title">Questions, answered</h2>
+      </div>
+      <div class="panel faq">
+        <details>
+          <summary>Do I need a green screen?</summary>
+          <div><p>No. Lil Floaty Cam removes your background in real time using your Mac's built-in machine learning. It works in a normal room with a normal webcam.</p></div>
+        </details>
+        <details>
+          <summary>Which screen recorders does it work with?</summary>
+          <div><p>All of them. Lil Floaty Cam is a regular window floating above your apps, so anything that records or shares your screen picks it up: QuickTime Player, the macOS screenshot toolbar, OBS, ScreenFlow, and screen sharing in Zoom, Meet or Teams.</p></div>
+        </details>
+        <details>
+          <summary>Can I use my iPhone as the camera?</summary>
+          <div><p>Yes. Lil Floaty Cam works with any camera your Mac sees, including the built-in FaceTime camera, USB webcams, and your iPhone with Continuity Camera.</p></div>
+        </details>
+        <details>
+          <summary>Which Macs are supported?</summary>
+          <div><p>Any Mac running macOS 14 Sonoma or later. It runs natively on both Apple silicon and Intel Macs.</p></div>
+        </details>
+        <details>
+          <summary>Is it a subscription?</summary>
+          <div><p>No. Lil Floaty Cam is a one-time $3.99 purchase with free lifetime updates. It's also free for members on a paid Patreon tier.</p></div>
+        </details>
+        <details>
+          <summary>Is my video uploaded anywhere?</summary>
+          <div><p>Never. Background removal runs entirely on your Mac. There's no account, no cloud processing, no analytics and no tracking.</p></div>
+        </details>
+        <details>
+          <summary>How is this different from Loom?</summary>
+          <div><p>Loom records and uploads your video for you. Lil Floaty Cam does one thing: it floats your camera, with the background removed, over your screen. Record with whatever tool you already like, and keep your files on your Mac.</p></div>
+        </details>
+      </div>
+      <p class="more"><a href="support/">More questions &amp; support →</a></p>
+    </div>
+  </section>
+
+  <!-- 7. Finale -->
+  <section class="page finale" aria-labelledby="finale-title">
+    <div class="wrap">
+      <h2 id="finale-title">Float on.</h2>
+      <p>Put yourself on screen, without the box.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://www.patreon.com/blankensmithing/posts/lil-floaty-cam-174189269">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
+          Download for Mac <span class="price">$3.99</span>
+        </a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="panel footer-inner">
+    <div>
+      <a class="brand" href="./"><img src="assets/img/icon-512.webp" alt="" width="34" height="34" loading="lazy">Lil Floaty Cam</a>
+      <p>A floating, transparent webcam for your Mac. Made with care by Torin Blankensmith.</p>
+      <p style="margin-top:10px">© 2026 Blankensmithing LLC</p>
+    </div>
+    <div>
+      <h3>App</h3>
+      <ul>
+        <li><a href="https://www.patreon.com/blankensmithing/posts/lil-floaty-cam-174189269">Download</a></li>
+        <li><a href="changelog/">Changelog</a></li>
+        <li><a href="https://www.youtube.com/watch?v=YaUiPEDGeIY">Demo video</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Help</h3>
+      <ul>
+        <li><a href="support/">FAQ &amp; Support</a></li>
+        <li><a href="privacy/">Privacy Policy</a></li>
+        <li><a href="mailto:torin.blankensmith@gmail.com?subject=Lil%20Floaty%20Cam">Contact</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Load the YouTube player only when someone presses play (keeps the page light and fast)
+  document.querySelector('#video button').addEventListener('click', function () {
+    var frame = document.createElement('iframe');
+    frame.src = 'https://www.youtube-nocookie.com/embed/YaUiPEDGeIY?autoplay=1&rel=0&modestbranding=1';
+    frame.title = 'Lil Floaty Cam (Mac App for Tutorials + Demos)';
+    frame.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+    frame.allowFullscreen = true;
+    this.replaceWith(frame);
+  });
+</script>
+<script src="assets/water.js" defer></script>
+</body>
+</html>
