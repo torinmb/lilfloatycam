@@ -334,10 +334,11 @@ details > div p { margin: 0 0 10px; }
   p, li { text-wrap: wrap; }
   .story { padding: 26px 20px; }
   .doc .panel { padding: 26px 20px; }
-  /* Smaller pills so at least two fit on each row */
+  /* Pills grow to fill each row, so the block lines up with the panels around it */
   .chips { gap: 8px; }
-  .chips li { padding: 8px 13px; font-size: 14px; }
+  .chips li { flex: 1 1 auto; text-align: center; padding: 11px 14px; font-size: 15px; }
 }
+@media (max-width: 400px) { .chips li { padding: 10px 10px; font-size: 14px; } }
 
 /* ---------- Footer ---------- */
 
@@ -354,7 +355,14 @@ details > div p { margin: 0 0 10px; }
 .footer a:hover { text-decoration: underline; }
 .footer .brand { margin-bottom: 8px; }
 .footer p { margin: 0; color: var(--ink-soft); font-size: 15px; }
-@media (max-width: 720px) { .footer-inner { grid-template-columns: 1fr 1fr; } .footer-inner > :first-child { grid-column: 1 / -1; } }
+@media (max-width: 720px) {
+  /* Brand across the top; App with Help stacked under it on the left, Guides on the right */
+  .footer-inner { grid-template-columns: 1fr 1fr; grid-template-areas: "brand brand" "app guides" "help guides"; grid-template-rows: auto auto 1fr; }
+  .footer-inner > :nth-child(1) { grid-area: brand; }
+  .footer-inner > :nth-child(2) { grid-area: app; }
+  .footer-inner > :nth-child(3) { grid-area: guides; }
+  .footer-inner > :nth-child(4) { grid-area: help; }
+}
 
 /* ---------- Document pages (FAQ, privacy, changelog) ---------- */
 
