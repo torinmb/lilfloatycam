@@ -1,12 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://lilfloatycam.com/</loc><changefreq>monthly</changefreq><priority>1.0</priority></url>
-  <url><loc>https://lilfloatycam.com/floating-webcam-mac/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://lilfloatycam.com/loom-alternative-mac/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://lilfloatycam.com/record-screen-with-face-mac/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://lilfloatycam.com/webcam-background-removal-mac/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://lilfloatycam.com/nvidia-broadcast-alternative-mac/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://lilfloatycam.com/support/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://lilfloatycam.com/changelog/</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lilfloatycam.com/privacy/</loc><changefreq>yearly</changefreq><priority>0.4</priority></url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
+  <url><loc>https://lilfloatycam.com/</loc><lastmod>2026-11-04</lastmod></url>
+  <url>
+    <loc>https://lilfloatycam.com/demo/</loc>
+    <lastmod>2026-11-04</lastmod>
+    <video:video>
+      <video:thumbnail_loc>https://i.ytimg.com/vi/YaUiPEDGeIY/maxresdefault.jpg</video:thumbnail_loc>
+      <video:title>Lil Floaty Cam (Mac App for Tutorials + Demos)</video:title>
+      <video:description>Lil Floaty Cam is a native Mac app that removes your webcam background in real time and floats you over any app. Perfect for tutorials, demos, presentations and streaming.</video:description>
+      <video:player_loc>https://www.youtube.com/embed/YaUiPEDGeIY</video:player_loc>
+      <video:duration>81</video:duration>
+      <video:publication_date>2026-11-02T11:56:13-08:00</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+      <video:uploader info="https://www.youtube.com/@blankensmithing">Torin Blankensmith</video:uploader>
+    </video:video>
+  </url>
+  <url><loc>https://lilfloatycam.com/floating-webcam-mac/</loc><lastmod>2026-11-04</lastmod></url>
+  <url><loc>https://lilfloatycam.com/loom-alternative-mac/</loc><lastmod>2026-11-04</lastmod></url>
+  <url><loc>https://lilfloatycam.com/record-screen-with-face-mac/</loc><lastmod>2026-11-04</lastmod></url>
+  <url><loc>https://lilfloatycam.com/webcam-background-removal-mac/</loc><lastmod>2026-11-04</lastmod></url>
+  <url><loc>https://lilfloatycam.com/nvidia-broadcast-alternative-mac/</loc><lastmod>2026-11-04</lastmod></url>
+  <url><loc>https://lilfloatycam.com/support/</loc><lastmod>2026-11-04</lastmod></url>
+  <url><loc>https://lilfloatycam.com/changelog/</loc><lastmod>2026-11-04</lastmod></url>
+  <url><loc>https://lilfloatycam.com/privacy/</loc><lastmod>2026-11-04</lastmod></url>
 </urlset>

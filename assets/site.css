@@ -363,6 +363,7 @@ details > div p { margin: 0 0 10px; }
 .doc article.panel > * { max-width: var(--measure); margin-left: auto; margin-right: auto; }
 .doc h1 { font-size: clamp(36px, 6vw, 54px); font-weight: 850; letter-spacing: -0.03em; }
 .doc .lede { margin: 12px 0 8px; text-align: left; max-width: none; }
+.doc .video { margin: 22px auto 18px; }
 .doc section { padding: 24px 0 8px; border-top: 1px solid rgba(15, 58, 43, 0.12); margin-top: 22px; }
 .doc section h2 { font-size: 26px; margin-bottom: 10px; }
 .doc section h2 span { font-size: 15px; font-weight: 600; color: var(--ink-soft); margin-left: 10px; letter-spacing: 0; }
