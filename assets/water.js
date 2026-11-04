@@ -279,87 +279,14 @@
   // ---------- Lily pads ----------
   //
   // Pads float on the page itself: they scroll with it, bounce off the left and right edges, and stop
-  // at the very top and bottom of the page. Each pad is drawn once. Only its spin changes, and the
-  // lighting layers (shading, lit rim, shaded rim, drop shadow) never rotate, so light always comes
-  // from the top left.
+  // at the very top and bottom of the page. Every pad is the same lily pad picture in a different size,
+  // tint and (sometimes) mirrored. The picture has its highlight along the top, so pads only ever tilt a
+  // little and spring back, which keeps the light coming from above.
+  const LILY = new URL('img/lily.webp', document.currentScript ? document.currentScript.src : location.href).href;
 
   const seeded = (seed) => {
     let state = (seed * 9973 + 17) % 2147483647;
     return () => { state = (state * 16807) % 2147483647; return state / 2147483647; };
-  };
-
-  const padSVG = (seed) => {
-    const rand = seeded(seed);
-    const TAU = Math.PI * 2;
-    const R = 43;
-    const notch = rand() * TAU;
-    const half = 0.09 + rand() * 0.06;                 // Half the slit's opening at the rim (radians)
-    const tipDepth = 0.5 + rand() * 0.15;              // How far the slit reaches toward the centre (1 = rim)
-    const wobble2 = { amp: 0.02 + rand() * 0.02, phase: rand() * TAU };
-    const wobble3 = { amp: 0.004 + rand() * 0.008, phase: rand() * TAU };
-    const tilt = rand() * TAU;
-    const stretch = 1 + (rand() - 0.5) * 0.1;
-    const cosT = Math.cos(tilt), sinT = Math.sin(tilt);
-    // Only the outline is stretched; veins are drawn afterwards to fit it, so they never look squashed
-    const point = (a, scale = 1) => {
-      const r = R * scale * (1 + wobble2.amp * Math.sin(2 * a + wobble2.phase) + wobble3.amp * Math.sin(3 * a + wobble3.phase));
-      const x = Math.cos(a) * r, y = Math.sin(a) * r;
-      const u = (x * cosT + y * sinT) * stretch, v = (-x * sinT + y * cosT) / stretch;
-      return [50 + u * cosT - v * sinT, 50 + u * sinT + v * cosT];
-    };
-    const f = (n) => n.toFixed(2);
-    const pt = (q) => `${f(q[0])} ${f(q[1])}`;
-
-    // Rim: Catmull-Rom through points from one side of the slit around to the other
-    const steps = 36;
-    const rim = [];
-    for (let i = 0; i <= steps; i++) rim.push(point(notch + half + (TAU - 2 * half) * (i / steps)));
-    let d = `M${pt(rim[0])}`;
-    for (let i = 0; i < rim.length - 1; i++) {
-      const p0 = rim[Math.max(0, i - 1)], p1 = rim[i], p2 = rim[i + 1], p3 = rim[Math.min(rim.length - 1, i + 2)];
-      d += ` C${f(p1[0] + (p2[0] - p0[0]) / 6)} ${f(p1[1] + (p2[1] - p0[1]) / 6)} ${f(p2[0] - (p3[0] - p1[0]) / 6)} ${f(p2[1] - (p3[1] - p1[1]) / 6)} ${pt(p2)}`;
-    }
-    // Slit: in to a softly rounded tip and back out
-    const tip = point(notch, tipDepth);
-    d += ` C${pt(point(notch - half * 0.8, 0.86))} ${pt(point(notch - 0.07, tipDepth + 0.04))} ${pt(tip)}`;
-    d += ` C${pt(point(notch + 0.07, tipDepth + 0.04))} ${pt(point(notch + half * 0.8, 0.86))} ${pt(rim[0])} Z`;
-
-    // Veins: soft tapered slivers that bend out from the centre, each a little different
-    let veins = '';
-    const count = 8 + Math.floor(rand() * 3);
-    const swirl = (rand() < 0.5 ? -1 : 1) * (0.16 + rand() * 0.1);
-    for (let i = 0; i < count; i++) {
-      const a = notch + half + 0.28 + (TAU - 2 * half - 0.56) * (i / (count - 1)) + (rand() - 0.5) * 0.14;
-      const edge = point(a);
-      const reach = 0.8 + rand() * 0.13;
-      const vx = (edge[0] - 50) * reach, vy = (edge[1] - 50) * reach;
-      const len = Math.hypot(vx, vy);
-      const nx = -vy / len, ny = vx / len;
-      const bend = (swirl + (rand() - 0.5) * 0.12) * len;
-      const width = 1.1 + rand() * 0.9;
-      const along = 0.45 + rand() * 0.15;
-      const start = [50 + vx * 0.05, 50 + vy * 0.05];
-      const end = [50 + vx, 50 + vy];
-      const c1 = [50 + vx * along + nx * bend, 50 + vy * along + ny * bend];
-      const c2 = [c1[0] + nx * width, c1[1] + ny * width];
-      veins += `<path d="M${pt(start)} Q${pt(c1)} ${pt(end)} Q${pt(c2)} ${pt(start)} Z"/>`;
-    }
-
-    const id = `pad${seed}`;
-    const area = 'x="-15" y="-15" width="130" height="130"';
-    return `<svg viewBox="0 0 100 100"><defs>` +
-      `<path id="${id}s" d="${d}"/>` +
-      `<clipPath id="${id}c"><use href="#${id}s" class="spin"/></clipPath>` +
-      // Lit rim: the pad minus a copy nudged away from the light
-      `<mask id="${id}hi" maskUnits="userSpaceOnUse" ${area}><use href="#${id}s" class="spin" fill="#fff"/><use href="#${id}s" class="spin" data-shift="2.4 3.2" fill="#000" filter="url(#pad-soft)"/></mask>` +
-      // Shaded rim: the pad minus a copy nudged toward the light
-      `<mask id="${id}lo" maskUnits="userSpaceOnUse" ${area}><use href="#${id}s" class="spin" fill="#fff"/><use href="#${id}s" class="spin" data-shift="-2.6 -3.4" fill="#000" filter="url(#pad-soft)"/></mask>` +
-      `</defs>` +
-      `<g class="spin"><use href="#${id}s" fill="url(#pad-fill)"/><g fill="url(#pad-vein)">${veins}</g></g>` +
-      `<rect ${area} fill="url(#pad-shade)" clip-path="url(#${id}c)"/>` +
-      `<rect ${area} fill="#9af5b8" fill-opacity="0.8" mask="url(#${id}hi)"/>` +
-      `<rect ${area} fill="#02301a" fill-opacity="0.4" mask="url(#${id}lo)"/>` +
-      `<use href="#${id}s" class="spin" fill="none" stroke="#0a3d22" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
   };
 
   const pads = (() => {
@@ -396,10 +323,15 @@
       const el = document.createElement('div');
       el.className = 'pad';
       el.style.width = el.style.height = `${r * 2}px`;
-      el.innerHTML = padSVG(i + 1);
+      const brightness = 0.82 + place() * 0.36;           // Darker to lighter greens
+      const saturation = 0.9 + place() * 0.25;
+      const hue = (place() - 0.5) * 16;
+      el.style.filter = `brightness(${brightness.toFixed(2)}) saturate(${saturation.toFixed(2)}) hue-rotate(${hue.toFixed(1)}deg) drop-shadow(3px 7px 6px rgba(8, 60, 38, 0.3))`;
+      el.innerHTML = `<img src="${LILY}" alt="" draggable="false" width="${Math.round(r * 2)}" height="${Math.round(r * 2)}">`;
       host.append(el);
-      const spinners = [...el.querySelectorAll('.spin')].map(node => ({ node, shift: node.dataset.shift }));
-      list.push({ el, r, x, y, vx: 0, vy: 0, rot: place() * 360, vr: (place() - 0.5) * 10, shownRot: null, spinners, phase: i * 1.7 });
+      const flip = place() < 0.5 ? -1 : 1;
+      const rest = (place() - 0.5) * 24;                   // Resting tilt, in degrees
+      list.push({ el, r, x, y, vx: 0, vy: 0, rot: rest, rest, vr: 0, flip, phase: i * 1.7 });
     }
 
     let remeasure;
@@ -470,7 +402,7 @@
         const force = (1 - dist / reach) * 520;
         pad.vx += (dx / dist) * force;
         pad.vy += (dy / dist) * force;
-        pad.vr += (Math.random() - 0.5) * force * 0.15;
+        pad.vr += (Math.random() - 0.5) * force * 0.25;
       }
     };
 
@@ -482,9 +414,11 @@
         pad.vy += Math.cos(time * 0.11 + pad.phase * 1.3) * 4 * dt;
         const drag = Math.exp(-1.3 * dt);
         pad.vx *= drag; pad.vy *= drag;
-        pad.vr *= Math.exp(-1.6 * dt);
+        pad.vr += (pad.rest - pad.rot) * 10 * dt;
+        pad.vr *= Math.exp(-3 * dt);
         pad.x += pad.vx * dt; pad.y += pad.vy * dt;
         pad.rot += pad.vr * dt;
+        pad.rot = Math.max(pad.rest - 25, Math.min(pad.rest + 25, pad.rot));
 
         const hard = (speed) => Math.abs(speed) > 90;
         if (pad.x < pad.r) { if (hard(pad.vx)) splash(pad.r * 0.3, pad.y, pad.r * 0.7, 0.7); pad.x = pad.r; pad.vx = Math.abs(pad.vx) * 0.55; }
@@ -516,14 +450,7 @@
       }
       for (const pad of list) {
         const bob = 1 + Math.sin(time * 1.4 + pad.phase) * 0.015;
-        pad.el.style.transform = `translate3d(${pad.x - pad.r}px, ${pad.y - pad.r}px, 0) scale(${bob})`;
-        // Spin only the leaf, never its lighting; skip pads that are off screen or barely turned
-        const onScreen = pad.y + pad.r > scrollY - 50 && pad.y - pad.r < scrollY + height + 50;
-        if (onScreen && (pad.shownRot === null || Math.abs(pad.rot - pad.shownRot) > 0.25)) {
-          pad.shownRot = pad.rot;
-          const turn = `rotate(${pad.rot.toFixed(2)} 50 50)`;
-          for (const { node, shift } of pad.spinners) node.setAttribute('transform', shift ? `translate(${shift}) ${turn}` : turn);
-        }
+        pad.el.style.transform = `translate3d(${pad.x - pad.r}px, ${pad.y - pad.r}px, 0) rotate(${pad.rot.toFixed(2)}deg) scale(${bob * pad.flip}, ${bob})`;
       }
     };
 
