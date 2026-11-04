@@ -14,3 +14,11 @@ The download links point at the Patreon post. When the Mac App Store version goe
 
 The Sparkle update feed lives separately in [torinmb/lilfloatycam-updates](https://github.com/torinmb/lilfloatycam-updates),
 whose old `/support/`, `/privacy/` and `/changelog/` pages redirect here.
+
+## Checking which version is live
+
+Every page has `<meta name="site-version" content="…">` in its head. Run `tools/stamp-version.sh` before committing, then check the live site with:
+
+```bash
+curl -s https://lilfloatycam.com/ | grep site-version
+```
