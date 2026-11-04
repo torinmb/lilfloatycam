@@ -15,7 +15,9 @@
   if (reduceMotion.matches) return;
 
   const SIM_SCALE = 0.25;      // Simulation texels per CSS pixel
-  const RENDER_SCALE = 0.6;    // Canvas pixels per CSS pixel (soft water doesn't need full res)
+  const POND_SCALE = 0.6;      // Pond canvas pixels per CSS pixel (soft water doesn't need full res)
+  // The page overlay draws thin colour fringes, which turn blocky when upscaled: give it device pixels
+  const SURFACE_SCALE = Math.min(devicePixelRatio || 1, 2);
   const STEPS_PER_SECOND = 120;
 
   const VERT = `#version 300 es
@@ -34,7 +36,8 @@
     refraction: 0.07,    // How much ripples bend the caustics
     shading: 0.9,        // Ripple light and shadow on the pond
     surface: 0.26,       // Ripple light and shadow drawn over the page
-    surfaceChroma: 1.5,  // Chromatic aberration on the ripples over the page
+    surfaceChroma: 1.0,  // Chromatic aberration on the ripples over the page (fringe px per unit of slope / 20)
+    surfaceChromaMax: 4, // Widest the ripple fringes get, in CSS px, however hard the click
     damping: 0.976,      // How long ripples last (closer to 1 = longer)
     click: 2.4,          // Strength of a click ripple
     top: [0.933, 0.973, 0.953],
@@ -76,7 +79,24 @@
   precision highp float;
   uniform sampler2D s; uniform vec2 d; uniform vec2 res; uniform float t; uniform float scroll;
   in vec2 uv; out vec4 o;
-  float h(vec2 u) { return texture(s, u).r; }
+  // Height with cubic B-spline filtering (4 linear taps). Plain linear filtering has a slope that
+  // jumps at every sim texel, which made the normals, and the colour fringes built on them, blocky.
+  float h(vec2 u) {
+    vec2 tex = u / d - 0.5;
+    vec2 i = floor(tex), f = tex - i;
+    vec2 f2 = f * f, f3 = f2 * f;
+    vec2 w0 = (1.0 - 3.0 * f + 3.0 * f2 - f3) / 6.0;
+    vec2 w1 = (4.0 - 6.0 * f2 + 3.0 * f3) / 6.0;
+    vec2 w3 = f3 / 6.0;
+    vec2 w2 = 1.0 - w0 - w1 - w3;
+    vec2 g0 = w0 + w1, g1 = w2 + w3;
+    vec2 a = (i - 0.5 + w1 / g0) * d;
+    vec2 b = (i + 1.5 + w3 / g1) * d;
+    return g0.y * (g0.x * texture(s, a).r + g1.x * texture(s, vec2(b.x, a.y)).r) +
+           g1.y * (g0.x * texture(s, vec2(a.x, b.y)).r + g1.x * texture(s, b).r);
+  }
+  // About half an 8-bit step of noise, to break up banding in the soft gradients
+  float dither() { return (fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) / 255.0; }
   vec3 normalAt(vec2 u) {
     float k = 0.9;
     return normalize(vec3((h(u - vec2(d.x, 0.0)) - h(u + vec2(d.x, 0.0))) * k,
@@ -138,23 +158,34 @@
     col += shade * u_shading * vec3(0.95, 1.0, 0.97);
     float spec = pow(max(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0)), 0.0), 90.0);
     col += spec * 0.35;
-    o = vec4(col, 1.0);
+    o = vec4(col + dither(), 1.0);
   }`;
 
   const SURFACE = COMMON + `
-  uniform float u_surface, u_surfaceChroma;
+  uniform float u_surface, u_surfaceChroma, u_surfaceChromaMax;
   void main() {
     vec3 n = normalAt(uv);
-    vec2 split = (n.xy * 40.0 + vec2(1.0, 0.6)) * d * u_surfaceChroma;
+    if (dot(n.xy, n.xy) < 1e-8) { o = vec4(0.0); return; } // Calm water: nothing to draw
+    // Dispersion: red and blue refract a little more and less than green, so each highlight gets a
+    // warm edge on one side and a cool one on the other, along the slope (across the ring). The width
+    // grows with the slope but saturates, so a hard click gives a thin fringe, not separate rainbow bands.
+    vec2 bend = n.xy * 20.0 * u_surfaceChroma;                // CSS px
+    bend /= 1.0 + length(bend) / max(u_surfaceChromaMax, 0.01);
+    vec2 split = bend / res;
     vec3 shade = vec3(shadeAt(uv + split), shadeAt(uv), shadeAt(uv - split));
     vec3 hi = clamp(shade * 2.8 * u_surface, 0.0, 0.6);
     float lo = clamp(-shade.g * 1.6 * u_surface, 0.0, 0.32);
     vec3 dark = vec3(0.06, 0.29, 0.21);
-    o = vec4(hi + dark * lo, max(max(hi.r, hi.g), hi.b) + lo);
+    float alpha = max(max(hi.r, hi.g), hi.b) + lo;
+    // Dither only where there's something drawn, and keep it valid premultiplied colour
+    float grain = alpha > 0.0 ? dither() : 0.0;
+    alpha = clamp(alpha + grain, 0.0, 1.0);
+    o = vec4(min(clamp(hi + dark * lo + grain, 0.0, 1.0), vec3(alpha)), alpha);
   }`;
 
   class WaterLayer {
-    constructor(canvas, fragment) {
+    constructor(canvas, fragment, renderScale) {
+      this.renderScale = renderScale;
       const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false });
       if (!gl || !(gl.getExtension('EXT_color_buffer_float') || gl.getExtension('EXT_color_buffer_half_float'))) {
         throw new Error('WebGL2 float render targets unavailable');
@@ -197,8 +228,8 @@
 
     resize(width, height) {
       const gl = this.gl;
-      this.canvas.width = Math.max(1, Math.round(width * RENDER_SCALE));
-      this.canvas.height = Math.max(1, Math.round(height * RENDER_SCALE));
+      this.canvas.width = Math.max(1, Math.round(width * this.renderScale));
+      this.canvas.height = Math.max(1, Math.round(height * this.renderScale));
       this.simW = Math.max(8, Math.round(width * SIM_SCALE));
       this.simH = Math.max(8, Math.round(height * SIM_SCALE));
       (this.targets || []).forEach(target => { gl.deleteTexture(target.texture); gl.deleteFramebuffer(target.fbo); });
@@ -287,7 +318,7 @@
   const surfaceCanvas = makeCanvas('water-surface');
   let layers;
   try {
-    layers = [new WaterLayer(pondCanvas, POND), new WaterLayer(surfaceCanvas, SURFACE)];
+    layers = [new WaterLayer(pondCanvas, POND, POND_SCALE), new WaterLayer(surfaceCanvas, SURFACE, SURFACE_SCALE)];
   } catch (error) {
     console.info('Lil Floaty Cam: static pond (', error.message, ')');
     return;
@@ -739,6 +770,7 @@
       ['shading', 'Ripple shading (pond)', 'range', 0, 2.5, 0.01],
       ['surface', 'Ripple shading (page)', 'range', 0, 2.5, 0.01],
       ['surfaceChroma', 'Ripple aberration (page)', 'range', 0, 6, 0.05],
+      ['surfaceChromaMax', 'Ripple aberration max (px)', 'range', 0, 30, 0.5],
       ['damping', 'Ripple length', 'range', 0.95, 0.998, 0.001],
       ['click', 'Click strength', 'range', 0, 4, 0.05],
       ['top', 'Water (top)', 'color'],

@@ -280,12 +280,27 @@ h3 { font-size: 22px; font-weight: 750; letter-spacing: -0.01em; }
 
 /* ---------- Use cases + story ---------- */
 
-.chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; list-style: none; padding: 0; margin: 0 0 36px; }
+.chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; list-style: none; padding: 0; margin: 0 0 36px; container-type: inline-size; }
 .chips li {
-  padding: 10px 18px; border-radius: 999px; font-weight: 700;
+  /* Text size follows the container width (cqi), stepping between layouts that fill
+     each row edge to edge: 6/4 on desktop, 4/4/2 and 4/3/3 on tablets, 2 per row on phones.
+     Tuned by measuring the rows at every width; padding is in em so it scales along. */
+  font-size: max(13px, 1.57cqi);
+  padding: 0.59em 1.06em; border-radius: 999px; font-weight: 700;
   background: var(--glass-strong); border: 1px solid var(--glass-line);
   box-shadow: 0 4px 12px rgba(18, 82, 60, 0.06);
 }
+@container (max-width: 859px) { .chips li { font-size: 2.18cqi; } }
+@container (max-width: 799px) { .chips li { font-size: min(18.5px, 2.52cqi); } }
+@container (max-width: 509px) { .chips li { font-size: 3.9cqi; } }
+@container (max-width: 439px) {
+  /* Phones: two per row, pairing a long name with a short one so the text can be bigger */
+  .chips li { font-size: clamp(13px, 4.6cqi, 20px); }
+  .chips li:nth-child(2) { order: 8; } .chips li:nth-child(3) { order: 3; } .chips li:nth-child(4) { order: 10; }
+  .chips li:nth-child(5) { order: 9; } .chips li:nth-child(6) { order: 4; } .chips li:nth-child(7) { order: 6; }
+  .chips li:nth-child(8) { order: 5; } .chips li:nth-child(9) { order: 7; } .chips li:nth-child(10) { order: 2; }
+}
+@media (max-width: 599px) { .chips { gap: 8px; } }
 .story { padding: clamp(26px, 4vw, 44px); max-width: calc(var(--measure) + 88px); margin: 0 auto; }
 .story > * { max-width: var(--measure); margin-left: auto; margin-right: auto; }
 .story p { font-size: 19px; margin-top: 0; margin-bottom: 14px; }
@@ -334,11 +349,7 @@ details > div p { margin: 0 0 10px; }
   p, li { text-wrap: wrap; }
   .story { padding: 26px 20px; }
   .doc .panel { padding: 26px 20px; }
-  /* Pills grow to fill each row, so the block lines up with the panels around it */
-  .chips { gap: 8px; }
-  .chips li { flex: 1 1 auto; text-align: center; padding: 11px 14px; font-size: 15px; }
 }
-@media (max-width: 400px) { .chips li { padding: 10px 10px; font-size: 14px; } }
 
 /* ---------- Footer ---------- */
 
