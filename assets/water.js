@@ -541,6 +541,7 @@
     let drag = null;           // Active drag
     let moving = false;        // Gliding after a throw
     let homing = null;         // Gliding back into the card
+    let leftTop = false;       // Has the page been scrolled away from the top since the logo came out?
     const samples = [];
 
     const place = () => {
@@ -560,6 +561,7 @@
       icon.classList.add('floating');
       document.body.append(icon);
       floating = true;
+      leftTop = scrollY > 80;
       place();
     };
 
@@ -570,6 +572,7 @@
       icon.style.transform = '';
       floating = moving = false;
       homing = null;
+      leftTop = false;
       vx = vy = tilt = 0;
     };
 
@@ -577,11 +580,16 @@
 
     addEventListener('scroll', () => {
       const now = performance.now();
-      if (drag || press) return;
-      if (floating && !homing && scrollY < 4) {
-        homing = { fromX: x, fromY: y, fromTilt: tilt, start: now };
-        moving = false;
+      if (!floating) return;
+      // Only head home after you've scrolled away and come back up to the very top
+      if (scrollY > 80) {
+        leftTop = true;
+        if (homing) { homing = null; tilt = 0; place(); }   // Scrolled away again mid-glide: stay floating
+        return;
       }
+      if (drag || press || homing || !leftTop || scrollY >= 4) return;
+      homing = { fromX: x, fromY: y, fromTilt: tilt, start: now };
+      moving = false;
     }, { passive: true });
 
     icon.addEventListener('pointerdown', (e) => {
@@ -814,6 +822,14 @@
     document.body.append(panel);
   }
 
-  // A welcome ripple so people notice the water
-  setTimeout(() => ripple(width * 0.5, height * 0.32, 40, 1.4), 500);
+  // A welcome ripple from behind the logo so people notice the water
+  setTimeout(() => {
+    const logoBox = document.querySelector('.hero-icon');
+    if (logoBox && scrollY < height) {
+      const box = logoBox.getBoundingClientRect();
+      ripple(box.left + box.width / 2, box.top + box.height / 2, Math.max(40, box.width * 0.45), 1.4);
+    } else {
+      ripple(width * 0.5, height * 0.32, 40, 1.4);
+    }
+  }, 500);
 })();
