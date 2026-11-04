@@ -1,6 +1,6 @@
 # Lil Floaty Cam website
 
-The website for Lil Floaty Cam, served by GitHub Pages at https://torinmb.github.io/lilfloatycam/
+The website for Lil Floaty Cam, served by GitHub Pages at https://lilfloatycam.com/
 
 - `index.html`: the home page
 - `support/`: FAQ & Support (`faq/` redirects here)
