@@ -322,7 +322,7 @@ details > div p { margin: 0 0 10px; }
 .footer { position: relative; z-index: 2; padding: 0 20px 28px; }
 .footer-inner {
   width: min(1080px, 100%); margin: 0 auto;
-  display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 28px;
+  display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 28px;
   padding: 30px clamp(22px, 3vw, 36px);
 }
 .footer h3 { font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 10px; }
@@ -348,6 +348,18 @@ details > div p { margin: 0 0 10px; }
 .doc ul { margin: 0 0 12px; padding-left: 22px; }
 .doc li { margin: 6px 0; }
 .doc details > div { padding-right: 0; }
+.doc .eyebrow { margin: 0 0 14px; }
+.doc .doc-cta { justify-content: flex-start; margin: 22px auto 6px; }
+.doc figure { margin: 26px auto 4px; }
+.doc figure img { border-radius: 18px; box-shadow: 0 10px 30px rgba(18, 82, 60, 0.18); width: 100%; height: auto; }
+.doc ol { margin: 0 0 12px; padding-left: 24px; }
+.doc .fine { font-size: 14px; color: var(--ink-soft); }
+.table-wrap { overflow-x: auto; margin: 6px 0 10px; }
+.doc table { width: 100%; border-collapse: collapse; font-size: 16px; min-width: 520px; }
+.doc th, .doc td { text-align: left; vertical-align: top; padding: 11px 12px; border-bottom: 1px solid rgba(15, 58, 43, 0.12); }
+.doc thead th { font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); }
+.doc tbody th { font-weight: 700; width: 26%; }
+.doc td:nth-child(2) { background: rgba(31, 138, 76, 0.07); }
 
 /* ---------- Motion preferences ---------- */
 

@@ -1,0 +1,47 @@
+# Lil Floaty Cam
+
+> Lil Floaty Cam is a lightweight native Mac app that floats your webcam over any app, even in full screen, and removes your background in real time with no green screen. Use it with any screen recorder (QuickTime, the macOS screenshot toolbar, OBS, ScreenFlow) or during video calls and live streams, so your face is already composited into the recording.
+
+Made by Torin Blankensmith (Blankensmithing LLC). Website: https://lilfloatycam.com/
+
+## Key facts
+
+- Platform: macOS 14 Sonoma or later; runs natively on Apple silicon and Intel Macs
+- Price: $3.99 one-time purchase with free lifetime updates, no subscription. Free for members on a paid Patreon tier. Download: https://www.patreon.com/blankensmithing/posts/lil-floaty-cam-174189269
+- Privacy: no account, no cloud processing, no analytics or tracking; camera video is processed on the Mac and never leaves it
+- Cameras: built-in FaceTime camera, USB webcams, iPhone via Continuity Camera
+
+## Features
+
+- Real-time webcam background removal (a true cutout of the person, not just blur), running on-device; Refine Edges, Edge Stability, and Fast/Balanced/Best quality settings
+- Floats above every app, including full-screen apps; drag to move and resize from any corner
+- Click-through: with background removal on, only the person's cutout catches clicks; everything around it passes through to the app underneath
+- Hide Camera on Mouse Over, and Streaming Mode that hides all borders, handles and buttons from recordings
+- Optional framed camera bubble with any corner radius from square to circle, aspect ratio presets, mirroring
+- Playful physics: toss the camera across the screen and it bounces off the edges with a liquid ripple
+
+## Good fit for
+
+- Recording tutorials, course videos, product demos and bug reports on a Mac with your face on screen, without editing
+- People who use Loom mainly for the floating camera bubble and want a one-time-purchase alternative that works with any recorder
+- Live streaming on a Mac (for example with OBS): a background-removed facecam without a green screen; a Mac option for people looking for NVIDIA Broadcast, which is Windows/RTX only
+- Teaching, presentations and screen sharing in Zoom, Google Meet or Microsoft Teams
+
+## Not a fit for
+
+- Hosting or sharing videos (it has no share links, comments or viewer analytics)
+- Windows, iOS or Android
+- Use as a virtual camera inside call apps' camera pickers (it is a floating window captured with your screen, not a virtual camera)
+
+## Pages
+
+- [Home](https://lilfloatycam.com/): overview, demo video, features, pricing
+- [Floating webcam for Mac](https://lilfloatycam.com/floating-webcam-mac/): what it does and how to set it up
+- [Loom alternative for Mac](https://lilfloatycam.com/loom-alternative-mac/): honest comparison with Loom
+- [Webcam background removal for Mac](https://lilfloatycam.com/webcam-background-removal-mac/): real-time cutout with no green screen, tips for clean edges
+- [NVIDIA Broadcast alternative for Mac](https://lilfloatycam.com/nvidia-broadcast-alternative-mac/): background removal for live streaming with OBS on a Mac
+- [How to record your screen with your face on a Mac](https://lilfloatycam.com/record-screen-with-face-mac/): step-by-step guide, free QuickTime method and Lil Floaty Cam method
+- [FAQ & Support](https://lilfloatycam.com/support/)
+- [Changelog](https://lilfloatycam.com/changelog/)
+- [Privacy Policy](https://lilfloatycam.com/privacy/)
+- [Demo video](https://www.youtube.com/watch?v=YaUiPEDGeIY)
