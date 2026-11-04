@@ -44,4 +44,4 @@ Made by Torin Blankensmith (Blankensmithing LLC). Website: https://lilfloatycam.
 - [FAQ & Support](https://lilfloatycam.com/support/)
 - [Changelog](https://lilfloatycam.com/changelog/)
 - [Privacy Policy](https://lilfloatycam.com/privacy/)
-- [Demo video](https://lilfloatycam.com/demo/): 1-minute demo (also on YouTube: https://www.youtube.com/watch?v=YaUiPEDGeIY)
+- [Demo video](https://lilfloatycam.com/demo/): quick demo video (also on YouTube: https://www.youtube.com/watch?v=YaUiPEDGeIY)
