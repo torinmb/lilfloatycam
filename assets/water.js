@@ -586,10 +586,11 @@
     };
 
     const lift = () => {
+      // Layout size, not the bounding box: the bob animation tilts it, which makes the box ~4px bigger
       const box = icon.getBoundingClientRect();
-      size = box.width;
-      x = box.left + size / 2;
-      y = box.top + size / 2;
+      size = icon.offsetWidth;
+      x = box.left + box.width / 2;
+      y = box.top + box.height / 2;
       // Hold its spot in the card so the layout doesn't jump
       const placeholder = document.createElement('div');
       placeholder.className = 'hero-icon-spot';
@@ -613,7 +614,11 @@
       vx = vy = tilt = 0;
     };
 
-    const easeOutBack = (t) => 1 + 2.2 * Math.pow(t - 1, 3) + 1.2 * Math.pow(t - 1, 2);
+    const easeInOut = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; // Cubic
+    const HOME_MS = 1100;
+    // Docked, the logo bobs (CSS 'bob'), which starts at rotate(-2deg). End the glide on exactly that pose
+    // so handing over to the animation is seamless.
+    const HOME_TILT = -2;
 
     addEventListener('scroll', () => {
       const now = performance.now();
@@ -700,13 +705,19 @@
         const spot = document.querySelector('.hero-icon-spot');
         if (!spot) { dock(); return; }
         const box = spot.getBoundingClientRect();
-        const t = Math.min(1, (performance.now() - homing.start) / 1400);
-        const k = easeOutBack(t);
+        const t = Math.min(1, (performance.now() - homing.start) / HOME_MS);
+        const k = easeInOut(t);
         x = homing.fromX + (box.left + box.width / 2 - homing.fromX) * k;
         y = homing.fromY + (box.top + box.height / 2 - homing.fromY) * k;
-        tilt = homing.fromTilt * (1 - t);
+        tilt = homing.fromTilt + (HOME_TILT - homing.fromTilt) * k;
         place();
-        if (t >= 1) { dock(); ripple(box.left + box.width / 2, box.top + box.height / 2, size * 0.6, 1); }
+        // A gentle, wide landing ripple, started just before it settles. The old strength-1 drop drew a
+        // bright highlight over the logo the instant it docked, which read as a white flash.
+        if (t >= 0.85 && !homing.splashed) {
+          homing.splashed = true;
+          ripple(box.left + box.width / 2, box.top + box.height / 2, size * 0.9, 0.3);
+        }
+        if (t >= 1) dock();
         return;
       }
       if (!floating || drag || !moving) return;
