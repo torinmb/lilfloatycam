@@ -33,8 +33,8 @@
     sharpness: 6.7,      // Higher = thinner, crisper caustic lines
     warp: 1.2,           // How wobbly the caustic lines are
     chroma: 0.006,       // Chromatic aberration in the caustics
-    refraction: 1.5,     // How much ripples bend the caustics
-    shading: 0.9,        // Ripple light and shadow on the pond
+    refraction: 1.35,    // How much ripples bend the caustics
+    shading: 0.03,       // Ripple light and shadow on the pond
     lightMix: 0.5,       // 0 = one light from the top left (leaves a seam across each ring), 1 = crests lit evenly all round
     surface: 0.26,       // Ripple light and shadow drawn over the page
     surfaceChroma: 1.0,  // Chromatic aberration on the ripples over the page (fringe px per unit of slope / 20)
