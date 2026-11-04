@@ -534,7 +534,8 @@
   //
   // Click it for a splash. Drag it out of the card and it floats over the window: set it down gently and
   // it stays exactly where you put it, like the webcam window. Throw it and it glides, bounces off the
-  // window edges with a ripple, and settles.
+  // window edges with a ripple, and settles. Scrolling down knocks it out of the card off the top of the
+  // window; back at the very top of the page, it glides home into the card.
 
   const logo = (() => {
     const icon = document.querySelector('.hero-icon');
@@ -550,6 +551,7 @@
     let press = null;          // Pointer down, not yet a drag
     let drag = null;           // Active drag
     let moving = false;        // Gliding after a throw
+    let homing = null;         // Gliding back into the card
     const samples = [];
 
     const place = () => {
@@ -572,9 +574,47 @@
       place();
     };
 
+    const dock = () => {
+      const spot = document.querySelector('.hero-icon-spot');
+      if (spot) spot.replaceWith(icon);
+      icon.classList.remove('floating');
+      icon.style.transform = '';
+      floating = moving = false;
+      homing = null;
+      vx = vy = tilt = 0;
+    };
+
+    const easeOutBack = (t) => 1 + 2.2 * Math.pow(t - 1, 3) + 1.2 * Math.pow(t - 1, 2);
+
+    let lastScrollY = scrollY, lastScrollT = performance.now();
+    addEventListener('scroll', () => {
+      const now = performance.now();
+      const speed = (scrollY - lastScrollY) / Math.max(16, now - lastScrollT) * 1000;
+      lastScrollY = scrollY; lastScrollT = now;
+      if (drag || press) return;
+      if (!floating && speed > 0) {
+        // Reached the top of the window: pop out and bounce back down off the edge
+        const box = icon.getBoundingClientRect();
+        if (box.top < 6) {
+          lift();
+          clamp();
+          place();
+          vy = Math.min(2200, 420 + speed * 0.6);
+          vx = (Math.random() - 0.5) * 600;
+          tilt = vx * 0.02;
+          moving = true;
+          ripple(x, 0, size * 0.9, 1.4);
+        }
+      } else if (floating && !homing && scrollY < 4) {
+        homing = { fromX: x, fromY: y, fromTilt: tilt, start: now };
+        moving = false;
+      }
+    }, { passive: true });
+
     icon.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
       e.preventDefault();
+      homing = null;
       icon.setPointerCapture(e.pointerId);
       press = { x: e.clientX, y: e.clientY };
       samples.length = 0;
@@ -638,6 +678,19 @@
     addEventListener('resize', () => { if (floating) { clamp(); place(); } });
 
     api.step = (dt) => {
+      if (floating && homing && !drag) {
+        const spot = document.querySelector('.hero-icon-spot');
+        if (!spot) { dock(); return; }
+        const box = spot.getBoundingClientRect();
+        const t = Math.min(1, (performance.now() - homing.start) / 750);
+        const k = easeOutBack(t);
+        x = homing.fromX + (box.left + box.width / 2 - homing.fromX) * k;
+        y = homing.fromY + (box.top + box.height / 2 - homing.fromY) * k;
+        tilt = homing.fromTilt * (1 - t);
+        place();
+        if (t >= 1) { dock(); ripple(box.left + box.width / 2, box.top + box.height / 2, size * 0.6, 1); }
+        return;
+      }
       if (!floating || drag || !moving) return;
       const r = size / 2;
       const glide = Math.exp(-1.1 * dt);
