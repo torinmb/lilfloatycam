@@ -276,43 +276,66 @@
 
   // ---------- Lily pads ----------
 
-  // Every pad gets its own slightly lumpy outline, slit and veins (seeded, so it's the same on each visit)
+  // Every pad is a gently squashed circle with a narrow slit and curved veins, a little different each
+  // time (seeded, so the same pads come back on each visit)
   const padSVG = (seed) => {
-    let state = seed * 9973;
+    let state = seed * 9973 + 17;
     const rand = () => { state = (state * 16807) % 2147483647; return state / 2147483647; };
     const TAU = Math.PI * 2;
+    const R = 43;
     const notch = rand() * TAU;
-    const half = 0.1 + rand() * 0.12;                    // Half the slit's opening angle
-    const apex = [50 + Math.cos(notch) * 6 * rand(), 50 + Math.sin(notch) * 6 * rand()];
-    const waves = [2, 3, 5, 7].map((k, i) => ({ k, amp: [0.05, 0.04, 0.022, 0.012][i] * (0.5 + rand()), phase: rand() * TAU }));
-    const stretch = 1 + (rand() - 0.5) * 0.14;
-    const radius = (a) => 40 * (1 + waves.reduce((sum, w) => sum + Math.sin(a * w.k + w.phase) * w.amp, 0));
-    const point = (a) => {
-      const r = radius(a);
-      return [50 + Math.cos(a) * r * stretch, 50 + Math.sin(a) * r / stretch];
+    const half = 0.09 + rand() * 0.06;                 // Half the slit's opening at the rim (radians)
+    const tipDepth = 0.5 + rand() * 0.15;              // How far the slit reaches toward the centre (1 = rim)
+    const wobble2 = { amp: 0.02 + rand() * 0.02, phase: rand() * TAU };
+    const wobble3 = { amp: 0.004 + rand() * 0.008, phase: rand() * TAU };
+    const tilt = rand() * TAU;
+    const stretch = 1 + (rand() - 0.5) * 0.1;
+    const cosT = Math.cos(tilt), sinT = Math.sin(tilt);
+    const point = (a, scale = 1) => {
+      const r = R * scale * (1 + wobble2.amp * Math.sin(2 * a + wobble2.phase) + wobble3.amp * Math.sin(3 * a + wobble3.phase));
+      const x = Math.cos(a) * r, y = Math.sin(a) * r;
+      const u = (x * cosT + y * sinT) * stretch, v = (-x * sinT + y * cosT) / stretch;
+      return [50 + u * cosT - v * sinT, 50 + u * sinT + v * cosT];
     };
-    const steps = 30;
-    const pts = [];
-    for (let i = 0; i <= steps; i++) pts.push(point(notch + half + (TAU - 2 * half) * (i / steps)));
-    // Catmull-Rom through the outline points, as cubic Béziers
     const f = (n) => n.toFixed(2);
-    let d = `M${f(apex[0])} ${f(apex[1])} L${f(pts[0][0])} ${f(pts[0][1])}`;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
-      d += ` C${f(p1[0] + (p2[0] - p0[0]) / 6)} ${f(p1[1] + (p2[1] - p0[1]) / 6)} ${f(p2[0] - (p3[0] - p1[0]) / 6)} ${f(p2[1] - (p3[1] - p1[1]) / 6)} ${f(p2[0])} ${f(p2[1])}`;
+    const pt = (q) => `${f(q[0])} ${f(q[1])}`;
+
+    // Rim: Catmull-Rom through points from one side of the slit around to the other
+    const steps = 36;
+    const rim = [];
+    for (let i = 0; i <= steps; i++) rim.push(point(notch + half + (TAU - 2 * half) * (i / steps)));
+    let d = `M${pt(rim[0])}`;
+    for (let i = 0; i < rim.length - 1; i++) {
+      const p0 = rim[Math.max(0, i - 1)], p1 = rim[i], p2 = rim[i + 1], p3 = rim[Math.min(rim.length - 1, i + 2)];
+      d += ` C${f(p1[0] + (p2[0] - p0[0]) / 6)} ${f(p1[1] + (p2[1] - p0[1]) / 6)} ${f(p2[0] - (p3[0] - p1[0]) / 6)} ${f(p2[1] - (p3[1] - p1[1]) / 6)} ${pt(p2)}`;
     }
-    d += ' Z';
+    // Slit: in to a softly rounded tip and back out
+    const tip = point(notch, tipDepth);
+    d += ` C${pt(point(notch - half * 0.8, 0.86))} ${pt(point(notch - 0.07, tipDepth + 0.04))} ${pt(tip)}`;
+    d += ` C${pt(point(notch + 0.07, tipDepth + 0.04))} ${pt(point(notch + half * 0.8, 0.86))} ${pt(rim[0])} Z`;
+
+    // Veins: thin tapered slivers that swirl out from the centre
     let veins = '';
-    const count = 6 + Math.floor(rand() * 3);
-    for (let i = 1; i <= count; i++) {
-      const a = notch + half + (TAU - 2 * half) * (i / (count + 1)) + (rand() - 0.5) * 0.2;
-      const end = point(a).map((v, j) => apex[j] + (v - apex[j]) * (0.82 + rand() * 0.1));
-      const bend = (rand() - 0.5) * 8;
-      const mid = [(apex[0] + end[0]) / 2 - Math.sin(a) * bend, (apex[1] + end[1]) / 2 + Math.cos(a) * bend];
-      veins += `<path d="M${f(apex[0])} ${f(apex[1])} Q${f(mid[0])} ${f(mid[1])} ${f(end[0])} ${f(end[1])}"/>`;
+    const count = 8 + Math.floor(rand() * 2);
+    const swirl = (rand() < 0.5 ? -1 : 1) * (0.35 + rand() * 0.15);
+    for (let i = 0; i < count; i++) {
+      const a = notch + half + 0.25 + (TAU - 2 * half - 0.5) * (i / (count - 1)) + (rand() - 0.5) * 0.08;
+      const start = point(a, 0.04);
+      const end = point(a, 0.9 + rand() * 0.05);
+      const c1 = point(a - swirl, 0.5), c2 = point(a - swirl + 0.17, 0.5);
+      veins += `<path d="M${pt(start)} Q${pt(c1)} ${pt(end)} Q${pt(c2)} ${pt(start)} Z"/>`;
     }
-    return `<svg viewBox="0 0 100 100"><path d="${d}" fill="url(#pad-fill)" stroke="#156536" stroke-width="1.6" stroke-linejoin="round"/>` +
-      `<g stroke="#7fd69c" stroke-opacity="0.45" stroke-width="1.3" stroke-linecap="round" fill="none">${veins}</g></svg>`;
+
+    const id = `pad${seed}`;
+    const light = point(-2.4, 1), dark = point(0.75, 1);
+    return `<svg viewBox="0 0 100 100"><defs>` +
+      `<clipPath id="${id}c"><path d="${d}"/></clipPath>` +
+      `<linearGradient id="${id}h" gradientUnits="userSpaceOnUse" x1="${f(light[0])}" y1="${f(light[1])}" x2="${f(dark[0])}" y2="${f(dark[1])}">` +
+      `<stop offset="0" stop-color="#6fe896" stop-opacity="0.95"/><stop offset="0.45" stop-color="#3fcf6b" stop-opacity="0"/></linearGradient></defs>` +
+      `<path d="${d}" fill="url(#pad-fill)"/>` +
+      `<g fill="#52cf7c" fill-opacity="0.85">${veins}</g>` +
+      `<path d="${d}" fill="none" stroke="url(#${id}h)" stroke-width="7" clip-path="url(#${id}c)"/>` +
+      `<path d="${d}" fill="none" stroke="#0a3d22" stroke-width="1.8" stroke-linejoin="round"/></svg>`;
   };
 
   const pads = (() => {

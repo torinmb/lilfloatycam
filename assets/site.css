@@ -157,6 +157,8 @@ img { max-width: 100%; display: block; -webkit-user-drag: none; user-select: non
   padding: 8px 22px 8px calc(22px + 0.14em); border-radius: 999px;
   margin: 0 0 16px;
 }
+h1, h2, h3, .tagline, summary { text-wrap: balance; }
+p, li { text-wrap: pretty; }
 h1, h2, h3 { line-height: 1.08; letter-spacing: -0.02em; margin: 0; }
 h2 { font-size: clamp(34px, 5vw, 56px); font-weight: 800; }
 h3 { font-size: 22px; font-weight: 750; letter-spacing: -0.01em; }
@@ -167,7 +169,8 @@ h3 { font-size: 22px; font-weight: 750; letter-spacing: -0.01em; }
 /* ---------- Hero ---------- */
 
 .hero { padding-top: 104px; gap: 34px; }
-.hero-card { text-align: center; padding: 34px clamp(20px, 5vw, 56px) 30px; max-width: 860px; }
+.hero-card { text-align: center; padding: 34px clamp(20px, 5vw, 56px) 30px; width: min(980px, 100%); }
+.hero .lede { text-align: left; max-width: 700px; }
 .hero-icon {
   width: 112px; height: 112px; margin: 0 auto 14px;
   cursor: pointer;
@@ -216,8 +219,8 @@ h3 { font-size: 22px; font-weight: 750; letter-spacing: -0.01em; }
 
 /* ---------- Steps ---------- */
 
-.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-.step { padding: 30px 28px; }
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+.step { padding: 28px 24px; }
 .step-num {
   width: 46px; height: 46px; border-radius: 50%;
   display: grid; place-items: center;
@@ -227,7 +230,8 @@ h3 { font-size: 22px; font-weight: 750; letter-spacing: -0.01em; }
   box-shadow: 0 6px 14px rgba(245, 165, 36, 0.35);
 }
 .step p { color: var(--ink-soft); margin: 10px 0 0; }
-@media (max-width: 860px) { .steps { grid-template-columns: 1fr; } }
+@media (max-width: 1060px) { .steps { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .steps { grid-template-columns: 1fr; } }
 
 /* ---------- Features ---------- */
 
@@ -251,9 +255,6 @@ h3 { font-size: 22px; font-weight: 750; letter-spacing: -0.01em; }
   .feature.flip > :first-child { order: 0; }
 }
 
-.toss { text-align: center; padding: 40px 28px; }
-.toss p { color: var(--ink-soft); max-width: 600px; margin: 12px auto 0; }
-.toss .hint { display: inline-block; margin-top: 18px; font-weight: 700; color: var(--leaf-deep); }
 
 /* ---------- Use cases + story ---------- */
 
@@ -290,23 +291,19 @@ summary {
 }
 summary::-webkit-details-marker { display: none; }
 summary::after {
-  content: "+"; margin-left: auto; flex: none;
+  content: ""; margin-left: auto; flex: none;
   width: 30px; height: 30px; border-radius: 50%;
-  display: grid; place-items: center;
-  font-size: 22px; font-weight: 600; line-height: 1;
-  background: rgba(31, 138, 76, 0.12); color: var(--leaf-deep);
+  background-color: rgba(31, 138, 76, 0.12);
+  background-image: linear-gradient(var(--leaf-deep), var(--leaf-deep)), linear-gradient(var(--leaf-deep), var(--leaf-deep));
+  background-size: 12px 2px, 2px 12px;
+  background-position: center;
+  background-repeat: no-repeat;
   transition: transform 0.2s ease;
 }
 details[open] > summary::after { transform: rotate(45deg); }
 details > div { padding: 0 44px 20px 0; color: var(--ink-soft); }
 details > div p { margin: 0 0 10px; }
 .more { text-align: center; margin-top: 26px; font-weight: 700; }
-
-/* ---------- Final CTA ---------- */
-
-.finale { text-align: center; }
-.finale h2 { font-size: clamp(54px, 10vw, 120px); letter-spacing: -0.04em; }
-.finale p { font-size: 20px; color: var(--ink-soft); margin: 14px 0 30px; }
 
 /* ---------- Footer ---------- */
 
@@ -348,6 +345,6 @@ details > div p { margin: 0 0 10px; }
 }
 
 /* Headings sit straight on the water: a soft halo keeps them readable when a lily pad drifts behind */
-.section-head h2, .section-head p:not(.eyebrow), .finale h2, .finale p, .more {
+.section-head h2, .section-head p:not(.eyebrow), .more {
   text-shadow: 0 0 14px rgba(238, 248, 243, 0.95), 0 0 4px rgba(238, 248, 243, 0.9);
 }
