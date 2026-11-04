@@ -24,19 +24,19 @@
 
   // Everything you can tune live with ?tune on the URL. Colours are 0-1 RGB.
   const DEFAULTS = {
-    noise: 1,            // 0 = smooth ridged noise, 1 = cells (Voronoi edges)
-    scale: 300,          // Size of the caustic pattern, in CSS px
-    speed: 1,            // How fast the caustics drift
-    caustics: 0.2,       // Caustic brightness
-    sharpness: 5,        // Higher = thinner, crisper caustic lines
+    noise: 0,            // 0 = smooth ridged noise, 1 = cells (Voronoi edges)
+    scale: 692,          // Size of the caustic pattern, in CSS px
+    speed: 1.62,         // How fast the caustics drift
+    caustics: 0.21,      // Caustic brightness
+    sharpness: 6.7,      // Higher = thinner, crisper caustic lines
     warp: 1.2,           // How wobbly the caustic lines are
-    chroma: 0.035,       // Chromatic aberration in the caustics
-    refraction: 0.35,    // How much ripples bend the caustics
+    chroma: 0.006,       // Chromatic aberration in the caustics
+    refraction: 0.07,    // How much ripples bend the caustics
     shading: 0.9,        // Ripple light and shadow on the pond
-    surface: 1,          // Ripple light and shadow drawn over the page
+    surface: 0.26,       // Ripple light and shadow drawn over the page
     surfaceChroma: 1.5,  // Chromatic aberration on the ripples over the page
-    damping: 0.986,      // How long ripples last (closer to 1 = longer)
-    click: 1.1,          // Strength of a click ripple
+    damping: 0.976,      // How long ripples last (closer to 1 = longer)
+    click: 2.4,          // Strength of a click ripple
     top: [0.933, 0.973, 0.953],
     bottom: [0.776, 0.906, 0.859],
   };
@@ -472,9 +472,9 @@
       for (const pad of list) {
         if (dragging && dragging.pad === pad) continue;
         // A lazy current so the pads never quite sit still
-        pad.vx += Math.sin(time * 0.13 + pad.phase) * 4 * dt;
-        pad.vy += Math.cos(time * 0.11 + pad.phase * 1.3) * 4 * dt;
-        const drag = Math.exp(-1.3 * dt);
+        pad.vx += Math.sin(time * 0.17 + pad.phase) * 11 * dt;
+        pad.vy += Math.cos(time * 0.14 + pad.phase * 1.3) * 11 * dt;
+        const drag = Math.exp(-1.1 * dt);
         pad.vx *= drag; pad.vy *= drag;
         pad.vr += (pad.rest - pad.rot) * 10 * dt;
         pad.vr *= Math.exp(-3 * dt);
@@ -523,8 +523,8 @@
   //
   // Click it for a splash. Drag it out of the card and it floats over the window: set it down gently and
   // it stays exactly where you put it, like the webcam window. Throw it and it glides, bounces off the
-  // window edges with a ripple, and settles. Scrolling down knocks it out of the card off the top of the
-  // window; back at the very top of the page, it glides home into the card.
+  // window edges with a ripple, and settles. Once it's out, it stays on screen as you scroll; back at the
+  // very top of the page, it glides home into the card.
 
   const logo = (() => {
     const icon = document.querySelector('.hero-icon');
@@ -575,26 +575,10 @@
 
     const easeOutBack = (t) => 1 + 2.2 * Math.pow(t - 1, 3) + 1.2 * Math.pow(t - 1, 2);
 
-    let lastScrollY = scrollY, lastScrollT = performance.now();
     addEventListener('scroll', () => {
       const now = performance.now();
-      const speed = (scrollY - lastScrollY) / Math.max(16, now - lastScrollT) * 1000;
-      lastScrollY = scrollY; lastScrollT = now;
       if (drag || press) return;
-      if (!floating && speed > 0) {
-        // Reached the top of the window: pop out and bounce back down off the edge
-        const box = icon.getBoundingClientRect();
-        if (box.top < 6) {
-          lift();
-          clamp();
-          place();
-          vy = Math.min(2200, 420 + speed * 0.6);
-          vx = (Math.random() - 0.5) * 600;
-          tilt = vx * 0.02;
-          moving = true;
-          ripple(x, 0, size * 0.9, 1.4);
-        }
-      } else if (floating && !homing && scrollY < 4) {
+      if (floating && !homing && scrollY < 4) {
         homing = { fromX: x, fromY: y, fromTilt: tilt, start: now };
         moving = false;
       }
@@ -671,7 +655,7 @@
         const spot = document.querySelector('.hero-icon-spot');
         if (!spot) { dock(); return; }
         const box = spot.getBoundingClientRect();
-        const t = Math.min(1, (performance.now() - homing.start) / 750);
+        const t = Math.min(1, (performance.now() - homing.start) / 1400);
         const k = easeOutBack(t);
         x = homing.fromX + (box.left + box.width / 2 - homing.fromX) * k;
         y = homing.fromY + (box.top + box.height / 2 - homing.fromY) * k;
