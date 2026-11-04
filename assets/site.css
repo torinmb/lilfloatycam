@@ -40,7 +40,7 @@ body.over-pad { cursor: grab; }
 
 a { color: var(--leaf-deep); text-underline-offset: 3px; }
 a:hover { color: var(--leaf); }
-img { max-width: 100%; display: block; }
+img { max-width: 100%; display: block; -webkit-user-drag: none; user-select: none; -webkit-touch-callout: none; }
 
 :focus-visible { outline: 3px solid var(--lotus-deep); outline-offset: 3px; border-radius: 8px; }
 
@@ -151,8 +151,10 @@ img { max-width: 100%; display: block; }
   display: inline-block;
   font-size: 13px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
   color: var(--leaf-deep);
-  background: rgba(255, 204, 61, 0.35);
-  padding: 6px 12px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(31, 138, 76, 0.22);
+  box-shadow: 0 4px 12px rgba(18, 82, 60, 0.08);
+  padding: 8px 22px 8px calc(22px + 0.14em); border-radius: 999px;
   margin: 0 0 16px;
 }
 h1, h2, h3 { line-height: 1.08; letter-spacing: -0.02em; margin: 0; }

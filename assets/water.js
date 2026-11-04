@@ -276,6 +276,45 @@
 
   // ---------- Lily pads ----------
 
+  // Every pad gets its own slightly lumpy outline, slit and veins (seeded, so it's the same on each visit)
+  const padSVG = (seed) => {
+    let state = seed * 9973;
+    const rand = () => { state = (state * 16807) % 2147483647; return state / 2147483647; };
+    const TAU = Math.PI * 2;
+    const notch = rand() * TAU;
+    const half = 0.1 + rand() * 0.12;                    // Half the slit's opening angle
+    const apex = [50 + Math.cos(notch) * 6 * rand(), 50 + Math.sin(notch) * 6 * rand()];
+    const waves = [2, 3, 5, 7].map((k, i) => ({ k, amp: [0.05, 0.04, 0.022, 0.012][i] * (0.5 + rand()), phase: rand() * TAU }));
+    const stretch = 1 + (rand() - 0.5) * 0.14;
+    const radius = (a) => 40 * (1 + waves.reduce((sum, w) => sum + Math.sin(a * w.k + w.phase) * w.amp, 0));
+    const point = (a) => {
+      const r = radius(a);
+      return [50 + Math.cos(a) * r * stretch, 50 + Math.sin(a) * r / stretch];
+    };
+    const steps = 30;
+    const pts = [];
+    for (let i = 0; i <= steps; i++) pts.push(point(notch + half + (TAU - 2 * half) * (i / steps)));
+    // Catmull-Rom through the outline points, as cubic Béziers
+    const f = (n) => n.toFixed(2);
+    let d = `M${f(apex[0])} ${f(apex[1])} L${f(pts[0][0])} ${f(pts[0][1])}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+      d += ` C${f(p1[0] + (p2[0] - p0[0]) / 6)} ${f(p1[1] + (p2[1] - p0[1]) / 6)} ${f(p2[0] - (p3[0] - p1[0]) / 6)} ${f(p2[1] - (p3[1] - p1[1]) / 6)} ${f(p2[0])} ${f(p2[1])}`;
+    }
+    d += ' Z';
+    let veins = '';
+    const count = 6 + Math.floor(rand() * 3);
+    for (let i = 1; i <= count; i++) {
+      const a = notch + half + (TAU - 2 * half) * (i / (count + 1)) + (rand() - 0.5) * 0.2;
+      const end = point(a).map((v, j) => apex[j] + (v - apex[j]) * (0.82 + rand() * 0.1));
+      const bend = (rand() - 0.5) * 8;
+      const mid = [(apex[0] + end[0]) / 2 - Math.sin(a) * bend, (apex[1] + end[1]) / 2 + Math.cos(a) * bend];
+      veins += `<path d="M${f(apex[0])} ${f(apex[1])} Q${f(mid[0])} ${f(mid[1])} ${f(end[0])} ${f(end[1])}"/>`;
+    }
+    return `<svg viewBox="0 0 100 100"><path d="${d}" fill="url(#pad-fill)" stroke="#156536" stroke-width="1.6" stroke-linejoin="round"/>` +
+      `<g stroke="#7fd69c" stroke-opacity="0.45" stroke-width="1.3" stroke-linecap="round" fill="none">${veins}</g></svg>`;
+  };
+
   const pads = (() => {
     const host = document.getElementById('pads');
     const list = [];
@@ -284,12 +323,12 @@
 
     const small = width < 720;
     const seeds = [
-      { x: 0.07, y: 0.30, r: 64, lotus: false },
-      { x: 0.93, y: 0.22, r: 54, lotus: true },
-      { x: 0.90, y: 0.78, r: 72, lotus: false },
-      { x: 0.10, y: 0.84, r: 46, lotus: true },
-      { x: 0.55, y: 0.96, r: 40, lotus: false },
-      { x: 0.70, y: 0.08, r: 34, lotus: false },
+      { x: 0.07, y: 0.30, r: 64 },
+      { x: 0.93, y: 0.22, r: 54 },
+      { x: 0.90, y: 0.78, r: 72 },
+      { x: 0.10, y: 0.84, r: 46 },
+      { x: 0.55, y: 0.96, r: 40 },
+      { x: 0.70, y: 0.08, r: 34 },
     ].slice(0, small ? 3 : 6);
 
     seeds.forEach((seed, index) => {
@@ -297,7 +336,7 @@
       const el = document.createElement('div');
       el.className = 'pad';
       el.style.width = el.style.height = `${r * 2}px`;
-      el.innerHTML = `<svg viewBox="0 0 100 100"><use href="#lily-pad" width="100" height="100"/>${seed.lotus ? '<use href="#lotus" width="100" height="100"/>' : ''}</svg>`;
+      el.innerHTML = padSVG(index + 1);
       host.append(el);
       list.push({
         el, r,
