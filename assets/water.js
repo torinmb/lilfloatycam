@@ -5,7 +5,7 @@
  *  - #water-pond sits behind the page and draws the pond (refracted caustics plus ripple lighting).
  *  - #water-surface sits above the page with pointer-events off and draws only the ripple lighting,
  *    so clicks look like they disturb the whole page, the way the app ripples your camera.
- * Lily pads (home page only) are DOM elements you can push with clicks or grab and toss.
+ * Lily pads (home page only) float on the page: push them with clicks, or grab one and toss it.
  * With prefers-reduced-motion, or without WebGL2, the page keeps its static CSS pond.
  */
 (() => {
@@ -235,11 +235,11 @@
 
   let width = 0, height = 0;
   const resize = () => {
-    const oldW = width, oldH = height;
+    const oldW = width;
     width = innerWidth;
     height = innerHeight;
     layers.forEach(layer => layer.resize(width, height));
-    if (oldW) pads.resize(oldW, oldH); // Only after the first sizing, by which point pads exist
+    if (oldW) pads.resize(oldW); // Only after the first sizing, by which point pads exist
   };
   resize();
   let resizeTimer;
@@ -263,7 +263,7 @@
   addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
     ripple(e.clientX, e.clientY, 22, 1.1);
-    pads.push(e.clientX, e.clientY);
+    pads.push(e.pageX, e.pageY);
   }, { passive: true });
 
   addEventListener('pointermove', (e) => {
@@ -276,11 +276,20 @@
 
   // ---------- Lily pads ----------
 
-  // Every pad is a gently squashed circle with a narrow slit and curved veins, a little different each
-  // time (seeded, so the same pads come back on each visit)
+  // ---------- Lily pads ----------
+  //
+  // Pads float on the page itself: they scroll with it, bounce off the left and right edges, and stop
+  // at the very top and bottom of the page. Each pad is drawn once. Only its spin changes, and the
+  // lighting layers (shading, lit rim, shaded rim, drop shadow) never rotate, so light always comes
+  // from the top left.
+
+  const seeded = (seed) => {
+    let state = (seed * 9973 + 17) % 2147483647;
+    return () => { state = (state * 16807) % 2147483647; return state / 2147483647; };
+  };
+
   const padSVG = (seed) => {
-    let state = seed * 9973 + 17;
-    const rand = () => { state = (state * 16807) % 2147483647; return state / 2147483647; };
+    const rand = seeded(seed);
     const TAU = Math.PI * 2;
     const R = 43;
     const notch = rand() * TAU;
@@ -291,6 +300,7 @@
     const tilt = rand() * TAU;
     const stretch = 1 + (rand() - 0.5) * 0.1;
     const cosT = Math.cos(tilt), sinT = Math.sin(tilt);
+    // Only the outline is stretched; veins are drawn afterwards to fit it, so they never look squashed
     const point = (a, scale = 1) => {
       const r = R * scale * (1 + wobble2.amp * Math.sin(2 * a + wobble2.phase) + wobble3.amp * Math.sin(3 * a + wobble3.phase));
       const x = Math.cos(a) * r, y = Math.sin(a) * r;
@@ -314,28 +324,42 @@
     d += ` C${pt(point(notch - half * 0.8, 0.86))} ${pt(point(notch - 0.07, tipDepth + 0.04))} ${pt(tip)}`;
     d += ` C${pt(point(notch + 0.07, tipDepth + 0.04))} ${pt(point(notch + half * 0.8, 0.86))} ${pt(rim[0])} Z`;
 
-    // Veins: thin tapered slivers that swirl out from the centre
+    // Veins: soft tapered slivers that bend out from the centre, each a little different
     let veins = '';
-    const count = 8 + Math.floor(rand() * 2);
-    const swirl = (rand() < 0.5 ? -1 : 1) * (0.35 + rand() * 0.15);
+    const count = 8 + Math.floor(rand() * 3);
+    const swirl = (rand() < 0.5 ? -1 : 1) * (0.16 + rand() * 0.1);
     for (let i = 0; i < count; i++) {
-      const a = notch + half + 0.25 + (TAU - 2 * half - 0.5) * (i / (count - 1)) + (rand() - 0.5) * 0.08;
-      const start = point(a, 0.04);
-      const end = point(a, 0.9 + rand() * 0.05);
-      const c1 = point(a - swirl, 0.5), c2 = point(a - swirl + 0.17, 0.5);
+      const a = notch + half + 0.28 + (TAU - 2 * half - 0.56) * (i / (count - 1)) + (rand() - 0.5) * 0.14;
+      const edge = point(a);
+      const reach = 0.8 + rand() * 0.13;
+      const vx = (edge[0] - 50) * reach, vy = (edge[1] - 50) * reach;
+      const len = Math.hypot(vx, vy);
+      const nx = -vy / len, ny = vx / len;
+      const bend = (swirl + (rand() - 0.5) * 0.12) * len;
+      const width = 1.1 + rand() * 0.9;
+      const along = 0.45 + rand() * 0.15;
+      const start = [50 + vx * 0.05, 50 + vy * 0.05];
+      const end = [50 + vx, 50 + vy];
+      const c1 = [50 + vx * along + nx * bend, 50 + vy * along + ny * bend];
+      const c2 = [c1[0] + nx * width, c1[1] + ny * width];
       veins += `<path d="M${pt(start)} Q${pt(c1)} ${pt(end)} Q${pt(c2)} ${pt(start)} Z"/>`;
     }
 
     const id = `pad${seed}`;
-    const light = point(-2.4, 1), dark = point(0.75, 1);
+    const area = 'x="-15" y="-15" width="130" height="130"';
     return `<svg viewBox="0 0 100 100"><defs>` +
-      `<clipPath id="${id}c"><path d="${d}"/></clipPath>` +
-      `<linearGradient id="${id}h" gradientUnits="userSpaceOnUse" x1="${f(light[0])}" y1="${f(light[1])}" x2="${f(dark[0])}" y2="${f(dark[1])}">` +
-      `<stop offset="0" stop-color="#6fe896" stop-opacity="0.95"/><stop offset="0.45" stop-color="#3fcf6b" stop-opacity="0"/></linearGradient></defs>` +
-      `<path d="${d}" fill="url(#pad-fill)"/>` +
-      `<g fill="#52cf7c" fill-opacity="0.85">${veins}</g>` +
-      `<path d="${d}" fill="none" stroke="url(#${id}h)" stroke-width="7" clip-path="url(#${id}c)"/>` +
-      `<path d="${d}" fill="none" stroke="#0a3d22" stroke-width="1.8" stroke-linejoin="round"/></svg>`;
+      `<path id="${id}s" d="${d}"/>` +
+      `<clipPath id="${id}c"><use href="#${id}s" class="spin"/></clipPath>` +
+      // Lit rim: the pad minus a copy nudged away from the light
+      `<mask id="${id}hi" maskUnits="userSpaceOnUse" ${area}><use href="#${id}s" class="spin" fill="#fff"/><use href="#${id}s" class="spin" data-shift="2.4 3.2" fill="#000" filter="url(#pad-soft)"/></mask>` +
+      // Shaded rim: the pad minus a copy nudged toward the light
+      `<mask id="${id}lo" maskUnits="userSpaceOnUse" ${area}><use href="#${id}s" class="spin" fill="#fff"/><use href="#${id}s" class="spin" data-shift="-2.6 -3.4" fill="#000" filter="url(#pad-soft)"/></mask>` +
+      `</defs>` +
+      `<g class="spin"><use href="#${id}s" fill="url(#pad-fill)"/><g fill="url(#pad-vein)">${veins}</g></g>` +
+      `<rect ${area} fill="url(#pad-shade)" clip-path="url(#${id}c)"/>` +
+      `<rect ${area} fill="#9af5b8" fill-opacity="0.8" mask="url(#${id}hi)"/>` +
+      `<rect ${area} fill="#02301a" fill-opacity="0.4" mask="url(#${id}lo)"/>` +
+      `<use href="#${id}s" class="spin" fill="none" stroke="#0a3d22" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
   };
 
   const pads = (() => {
@@ -344,31 +368,42 @@
     const api = { push() {}, step() {}, resize() {} };
     if (!host) return api;
 
-    const small = width < 720;
-    const seeds = [
-      { x: 0.07, y: 0.30, r: 64 },
-      { x: 0.93, y: 0.22, r: 54 },
-      { x: 0.90, y: 0.78, r: 72 },
-      { x: 0.10, y: 0.84, r: 46 },
-      { x: 0.55, y: 0.96, r: 40 },
-      { x: 0.70, y: 0.08, r: 34 },
-    ].slice(0, small ? 3 : 6);
+    let docH = 0;
+    const measure = () => {
+      host.style.height = '0px';
+      docH = document.documentElement.scrollHeight;
+      host.style.height = `${docH}px`;
+    };
+    measure();
 
-    seeds.forEach((seed, index) => {
-      const r = seed.r * (small ? 0.7 : 1);
+    // A ripple at a page position, if that spot is on screen
+    const splash = (x, y, radius, strength) => {
+      const vy = y - scrollY;
+      if (vy > -radius && vy < height + radius) ripple(x, vy, radius, strength);
+    };
+
+    // Scatter pads down the page, mostly along the sides where they don't sit under the text
+    const small = width < 720;
+    const place = seeded(42);
+    const count = Math.max(5, Math.round(docH / (small ? 950 : 620)));
+    for (let i = 0; i < count; i++) {
+      const r = small ? 24 + place() * 18 : 32 + place() * 40;
+      const side = i % 4 === 3 ? 'middle' : (i % 2 ? 'right' : 'left');
+      const x = side === 'left' ? r + place() * width * 0.1
+        : side === 'right' ? width - r - place() * width * 0.1
+        : width * (0.3 + place() * 0.4);
+      const y = Math.min(docH - r, Math.max(r, ((i + 0.5) / count + (place() - 0.5) * 0.4 / count) * docH));
       const el = document.createElement('div');
       el.className = 'pad';
       el.style.width = el.style.height = `${r * 2}px`;
-      el.innerHTML = padSVG(index + 1);
+      el.innerHTML = padSVG(i + 1);
       host.append(el);
-      list.push({
-        el, r,
-        x: seed.x * width, y: seed.y * height,
-        vx: 0, vy: 0,
-        rot: index * 47, vr: (index % 2 ? 1 : -1) * 4,
-        phase: index * 1.7,
-      });
-    });
+      const spinners = [...el.querySelectorAll('.spin')].map(node => ({ node, shift: node.dataset.shift }));
+      list.push({ el, r, x, y, vx: 0, vy: 0, rot: place() * 360, vr: (place() - 0.5) * 10, shownRot: null, spinners, phase: i * 1.7 });
+    }
+
+    let remeasure;
+    new ResizeObserver(() => { clearTimeout(remeasure); remeasure = setTimeout(measure, 100); }).observe(document.querySelector('main') || document.body);
 
     let dragging = null;
     const samples = [];
@@ -378,27 +413,27 @@
 
     addEventListener('pointerdown', (e) => {
       if (e.button !== 0 || !canGrab(e)) return;
-      const pad = padAt(e.clientX, e.clientY);
+      const pad = padAt(e.pageX, e.pageY);
       if (!pad) return;
       e.preventDefault();
-      dragging = { pad, dx: pad.x - e.clientX, dy: pad.y - e.clientY };
+      dragging = { pad, dx: pad.x - e.pageX, dy: pad.y - e.pageY };
       samples.length = 0;
-      samples.push([e.clientX, e.clientY, performance.now()]);
+      samples.push([e.pageX, e.pageY, performance.now()]);
       document.body.classList.add('dragging');
     });
 
     addEventListener('pointermove', (e) => {
       if (dragging) {
         const { pad } = dragging;
-        pad.x = e.clientX + dragging.dx;
-        pad.y = e.clientY + dragging.dy;
-        samples.push([e.clientX, e.clientY, performance.now()]);
+        pad.x = e.pageX + dragging.dx;
+        pad.y = e.pageY + dragging.dy;
+        samples.push([e.pageX, e.pageY, performance.now()]);
         while (samples.length > 2 && performance.now() - samples[0][2] > 90) samples.shift();
-        ripple(pad.x, pad.y, pad.r * 0.55, 0.06);
+        splash(pad.x, pad.y, pad.r * 0.55, 0.06);
         return;
       }
       if (e.pointerType === 'mouse') {
-        document.body.classList.toggle('over-pad', canGrab(e) && !!padAt(e.clientX, e.clientY));
+        document.body.classList.toggle('over-pad', canGrab(e) && !!padAt(e.pageX, e.pageY));
       }
     }, { passive: true });
 
@@ -413,16 +448,18 @@
         pad.vy = Math.max(-2600, Math.min(2600, (y1 - y0) / dt));
         pad.vr += pad.vx * 0.02;
       }
-      ripple(pad.x, pad.y, pad.r * 0.9, 0.5);
+      splash(pad.x, pad.y, pad.r * 0.9, 0.5);
       dragging = null;
       document.body.classList.remove('dragging');
     });
 
-    // Keep pads at the same relative spot when the window changes size
-    api.resize = (oldW, oldH) => {
-      for (const pad of list) { pad.x *= width / oldW; pad.y *= height / oldH; }
+    // Keep pads in the same relative spot across the page when the window changes width
+    api.resize = (oldW) => {
+      measure();
+      for (const pad of list) { pad.x *= width / oldW; pad.y = Math.min(pad.y, docH - pad.r); }
     };
 
+    // Clicks push nearby pads away (in page coordinates)
     api.push = (x, y) => {
       for (const pad of list) {
         if (dragging && dragging.pad === pad) continue;
@@ -437,13 +474,6 @@
       }
     };
 
-    let lastScroll = scrollY;
-    addEventListener('scroll', () => {
-      const delta = scrollY - lastScroll;
-      lastScroll = scrollY;
-      for (const pad of list) if (!dragging || dragging.pad !== pad) pad.vy -= Math.max(-40, Math.min(40, delta)) * 2.2;
-    }, { passive: true });
-
     api.step = (dt, time) => {
       for (const pad of list) {
         if (dragging && dragging.pad === pad) continue;
@@ -456,11 +486,11 @@
         pad.x += pad.vx * dt; pad.y += pad.vy * dt;
         pad.rot += pad.vr * dt;
 
-        const bounce = (speed) => Math.abs(speed) > 90;
-        if (pad.x < pad.r) { if (bounce(pad.vx)) ripple(pad.r * 0.3, pad.y, pad.r * 0.7, 0.7); pad.x = pad.r; pad.vx = Math.abs(pad.vx) * 0.55; }
-        if (pad.x > width - pad.r) { if (bounce(pad.vx)) ripple(width - pad.r * 0.3, pad.y, pad.r * 0.7, 0.7); pad.x = width - pad.r; pad.vx = -Math.abs(pad.vx) * 0.55; }
-        if (pad.y < pad.r) { if (bounce(pad.vy)) ripple(pad.x, pad.r * 0.3, pad.r * 0.7, 0.7); pad.y = pad.r; pad.vy = Math.abs(pad.vy) * 0.55; }
-        if (pad.y > height - pad.r) { if (bounce(pad.vy)) ripple(pad.x, height - pad.r * 0.3, pad.r * 0.7, 0.7); pad.y = height - pad.r; pad.vy = -Math.abs(pad.vy) * 0.55; }
+        const hard = (speed) => Math.abs(speed) > 90;
+        if (pad.x < pad.r) { if (hard(pad.vx)) splash(pad.r * 0.3, pad.y, pad.r * 0.7, 0.7); pad.x = pad.r; pad.vx = Math.abs(pad.vx) * 0.55; }
+        if (pad.x > width - pad.r) { if (hard(pad.vx)) splash(width - pad.r * 0.3, pad.y, pad.r * 0.7, 0.7); pad.x = width - pad.r; pad.vx = -Math.abs(pad.vx) * 0.55; }
+        if (pad.y < pad.r) { if (hard(pad.vy)) splash(pad.x, pad.r * 0.3, pad.r * 0.7, 0.7); pad.y = pad.r; pad.vy = Math.abs(pad.vy) * 0.55; }
+        if (pad.y > docH - pad.r) { if (hard(pad.vy)) splash(pad.x, docH - pad.r * 0.3, pad.r * 0.7, 0.7); pad.y = docH - pad.r; pad.vy = -Math.abs(pad.vy) * 0.55; }
       }
       // Pads nudge each other apart
       for (let i = 0; i < list.length; i++) {
@@ -480,30 +510,152 @@
             const impulse = -relative * 0.8;
             if (!aFixed) { a.vx -= nx * impulse * (bFixed ? 2 : 1); a.vy -= ny * impulse * (bFixed ? 2 : 1); a.vr -= impulse * 0.05; }
             if (!bFixed) { b.vx += nx * impulse * (aFixed ? 2 : 1); b.vy += ny * impulse * (aFixed ? 2 : 1); b.vr += impulse * 0.05; }
-            if (impulse > 120) ripple(a.x + nx * a.r, a.y + ny * a.r, 14, 0.5);
+            if (impulse > 120) splash(a.x + nx * a.r, a.y + ny * a.r, 14, 0.5);
           }
         }
       }
       for (const pad of list) {
         const bob = 1 + Math.sin(time * 1.4 + pad.phase) * 0.015;
-        pad.el.style.transform = `translate3d(${pad.x - pad.r}px, ${pad.y - pad.r}px, 0) rotate(${pad.rot}deg) scale(${bob})`;
+        pad.el.style.transform = `translate3d(${pad.x - pad.r}px, ${pad.y - pad.r}px, 0) scale(${bob})`;
+        // Spin only the leaf, never its lighting; skip pads that are off screen or barely turned
+        const onScreen = pad.y + pad.r > scrollY - 50 && pad.y - pad.r < scrollY + height + 50;
+        if (onScreen && (pad.shownRot === null || Math.abs(pad.rot - pad.shownRot) > 0.25)) {
+          pad.shownRot = pad.rot;
+          const turn = `rotate(${pad.rot.toFixed(2)} 50 50)`;
+          for (const { node, shift } of pad.spinners) node.setAttribute('transform', shift ? `translate(${shift}) ${turn}` : turn);
+        }
       }
     };
 
     return api;
   })();
 
-  // ---------- Hero icon: the logo makes a splash ----------
+  // ---------- The logo floats like the app's camera ----------
+  //
+  // Click it for a splash. Drag it out of the card and it floats over the window: set it down gently and
+  // it stays exactly where you put it, like the webcam window. Throw it and it glides, bounces off the
+  // window edges with a ripple, and settles.
 
-  const icon = document.querySelector('.hero-icon');
-  if (icon) {
-    icon.addEventListener('click', (e) => {
+  const logo = (() => {
+    const icon = document.querySelector('.hero-icon');
+    const api = { step() {} };
+    if (!icon) return api;
+
+    const bounceAnim = () => icon.animate(
+      [{ transform: 'scale(1)' }, { transform: 'scale(0.88) rotate(-8deg)' }, { transform: 'scale(1.06) rotate(6deg)' }, { transform: 'scale(1)' }],
+      { duration: 650, easing: 'cubic-bezier(.3,1.6,.5,1)', composite: 'add' });
+
+    let floating = false;
+    let x = 0, y = 0, vx = 0, vy = 0, tilt = 0, size = 0;
+    let press = null;          // Pointer down, not yet a drag
+    let drag = null;           // Active drag
+    let moving = false;        // Gliding after a throw
+    const samples = [];
+
+    const place = () => {
+      icon.style.transform = `translate3d(${x - size / 2}px, ${y - size / 2}px, 0) rotate(${tilt}deg)`;
+    };
+
+    const lift = () => {
+      const box = icon.getBoundingClientRect();
+      size = box.width;
+      x = box.left + size / 2;
+      y = box.top + size / 2;
+      // Hold its spot in the card so the layout doesn't jump
+      const placeholder = document.createElement('div');
+      placeholder.className = 'hero-icon-spot';
+      placeholder.style.width = placeholder.style.height = `${size}px`;
+      icon.before(placeholder);
+      icon.classList.add('floating');
+      document.body.append(icon);
+      floating = true;
+      place();
+    };
+
+    icon.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      icon.setPointerCapture(e.pointerId);
+      press = { x: e.clientX, y: e.clientY };
+      samples.length = 0;
+      samples.push([e.clientX, e.clientY, performance.now()]);
+    });
+
+    icon.addEventListener('pointermove', (e) => {
+      if (!press && !drag) return;
+      samples.push([e.clientX, e.clientY, performance.now()]);
+      while (samples.length > 2 && performance.now() - samples[0][2] > 90) samples.shift();
+      if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 6) {
+        if (!floating) lift();
+        drag = { dx: x - press.x, dy: y - press.y };
+        press = null;
+        moving = false;
+        document.body.classList.add('dragging');
+      }
+      if (drag) {
+        const nx = e.clientX + drag.dx, ny = e.clientY + drag.dy;
+        tilt = Math.max(-14, Math.min(14, (nx - x) * 0.6));
+        x = nx; y = ny;
+        clamp();
+        place();
+        ripple(x, y, size * 0.35, 0.06);
+      }
+    });
+
+    const release = () => {
+      if (press) splash();
+      if (drag) {
+        const [x0, y0, t0] = samples[0];
+        const [x1, y1, t1] = samples[samples.length - 1];
+        const age = performance.now() - t1;
+        const dt = Math.max(16, t1 - t0) / 1000;
+        vx = Math.max(-3000, Math.min(3000, (x1 - x0) / dt));
+        vy = Math.max(-3000, Math.min(3000, (y1 - y0) / dt));
+        // Held still before letting go? Then it was placed, not thrown: it stays right there.
+        if (age > 80 || Math.hypot(vx, vy) < 220) { vx = vy = 0; moving = false; tilt = 0; place(); }
+        else moving = true;
+        ripple(x, y, size * 0.6, 0.6);
+        document.body.classList.remove('dragging');
+      }
+      press = null;
+      drag = null;
+    };
+    // A plain click (or Enter/Space): a big splash and a wobble
+    const splash = () => {
       const box = icon.getBoundingClientRect();
       ripple(box.left + box.width / 2, box.top + box.height / 2, box.width * 0.6, 2.2);
-      icon.animate([{ transform: 'scale(1)' }, { transform: 'scale(0.88) rotate(-8deg)' }, { transform: 'scale(1.06) rotate(6deg)' }, { transform: 'scale(1)' }],
-        { duration: 650, easing: 'cubic-bezier(.3,1.6,.5,1)' });
-    });
-  }
+      bounceAnim();
+    };
+    icon.addEventListener('click', (e) => { if (e.detail === 0) splash(); });
+    icon.addEventListener('pointerup', release);
+    icon.addEventListener('pointercancel', release);
+
+    const clamp = () => {
+      const r = size / 2;
+      x = Math.max(r, Math.min(width - r, x));
+      y = Math.max(r, Math.min(height - r, y));
+    };
+    addEventListener('resize', () => { if (floating) { clamp(); place(); } });
+
+    api.step = (dt) => {
+      if (!floating || drag || !moving) return;
+      const r = size / 2;
+      const glide = Math.exp(-1.1 * dt);
+      vx *= glide; vy *= glide;
+      x += vx * dt; y += vy * dt;
+      const hit = (speed) => Math.abs(speed) > 60;
+      if (x < r) { if (hit(vx)) ripple(r * 0.4, y, r * 1.2, 1); x = r; vx = Math.abs(vx) * 0.6; }
+      if (x > width - r) { if (hit(vx)) ripple(width - r * 0.4, y, r * 1.2, 1); x = width - r; vx = -Math.abs(vx) * 0.6; }
+      if (y < r) { if (hit(vy)) ripple(x, r * 0.4, r * 1.2, 1); y = r; vy = Math.abs(vy) * 0.6; }
+      if (y > height - r) { if (hit(vy)) ripple(x, height - r * 0.4, r * 1.2, 1); y = height - r; vy = -Math.abs(vy) * 0.6; }
+      tilt += (Math.max(-14, Math.min(14, vx * 0.01)) - tilt) * Math.min(1, dt * 8);
+      if (Math.hypot(vx, vy) < 12) { vx = vy = 0; moving = false; }
+      if (Math.hypot(vx, vy) > 300 && Math.random() < 0.3) ripple(x, y, r * 0.5, 0.05);
+      place();
+    };
+
+    return api;
+  })();
 
   // ---------- Loop ----------
 
@@ -518,6 +670,7 @@
     frame++;
     const time = (now - start) / 1000;
     pads.step(dt, time);
+    logo.step(dt);
 
     // When everything has settled, keep the caustics drifting at a gentler frame rate
     const idle = now - lastActivity > 7000;
