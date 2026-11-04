@@ -22,15 +22,39 @@
   in vec2 p; out vec2 uv;
   void main() { uv = p * 0.5 + 0.5; gl_Position = vec4(p, 0.0, 1.0); }`;
 
+  // Everything you can tune live with ?tune on the URL. Colours are 0-1 RGB.
+  const DEFAULTS = {
+    noise: 1,            // 0 = smooth ridged noise, 1 = cells (Voronoi edges)
+    scale: 300,          // Size of the caustic pattern, in CSS px
+    speed: 1,            // How fast the caustics drift
+    caustics: 0.2,       // Caustic brightness
+    sharpness: 5,        // Higher = thinner, crisper caustic lines
+    warp: 1.2,           // How wobbly the caustic lines are
+    chroma: 0.035,       // Chromatic aberration in the caustics
+    refraction: 0.35,    // How much ripples bend the caustics
+    shading: 0.9,        // Ripple light and shadow on the pond
+    surface: 1,          // Ripple light and shadow drawn over the page
+    surfaceChroma: 1.5,  // Chromatic aberration on the ripples over the page
+    damping: 0.986,      // How long ripples last (closer to 1 = longer)
+    click: 1.1,          // Strength of a click ripple
+    top: [0.933, 0.973, 0.953],
+    bottom: [0.776, 0.906, 0.859],
+  };
+  const settings = { ...DEFAULTS };
+  const tuning = new URLSearchParams(location.search).has('tune');
+  if (tuning) {
+    try { Object.assign(settings, JSON.parse(localStorage.getItem('lilfloaty-water') || '{}')); } catch (_) { /* ignore */ }
+  }
+
   const UPDATE = `#version 300 es
   precision highp float;
-  uniform sampler2D s; uniform vec2 d; in vec2 uv; out vec4 o;
+  uniform sampler2D s; uniform vec2 d; uniform float u_damping; in vec2 uv; out vec4 o;
   void main() {
     vec4 i = texture(s, uv);
     float avg = (texture(s, uv - vec2(d.x, 0.0)).r + texture(s, uv + vec2(d.x, 0.0)).r +
                  texture(s, uv - vec2(0.0, d.y)).r + texture(s, uv + vec2(0.0, d.y)).r) * 0.25;
     i.g += (avg - i.r) * 2.0;
-    i.g *= 0.986;
+    i.g *= u_damping;
     i.r += i.g;
     i.r *= 0.9985;
     o = i;
@@ -53,51 +77,80 @@
   uniform sampler2D s; uniform vec2 d; uniform vec2 res; uniform float t; uniform float scroll;
   in vec2 uv; out vec4 o;
   float h(vec2 u) { return texture(s, u).r; }
-  vec3 waterNormal() {
+  vec3 normalAt(vec2 u) {
     float k = 0.9;
-    return normalize(vec3((h(uv - vec2(d.x, 0.0)) - h(uv + vec2(d.x, 0.0))) * k,
-                          (h(uv - vec2(0.0, d.y)) - h(uv + vec2(0.0, d.y))) * k, 1.0));
+    return normalize(vec3((h(u - vec2(d.x, 0.0)) - h(u + vec2(d.x, 0.0))) * k,
+                          (h(u - vec2(0.0, d.y)) - h(u + vec2(0.0, d.y))) * k, 1.0));
   }
   const vec3 L = normalize(vec3(-0.45, 0.65, 0.62));
+  float shadeAt(vec2 u) { return dot(normalAt(u), L) - L.z; }
   `;
 
   const POND = COMMON + `
+  uniform float u_noise, u_scale, u_speed, u_caustics, u_sharpness, u_warp, u_chroma, u_refraction, u_shading;
+  uniform vec3 u_top, u_bottom;
   float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  vec2 hash2(vec2 p) { return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453); }
   float noise(vec2 p) {
     vec2 i = floor(p), f = fract(p);
     f = f * f * (3.0 - 2.0 * f);
     return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
   }
-  float caustic(vec2 p) {
-    vec2 w = vec2(noise(p * 1.3 + t * 0.05), noise(p * 1.3 + vec2(5.2, 1.3) - t * 0.04));
-    float v = noise(p * 2.0 + w * 2.2 + t * 0.03);
-    float v2 = noise(p * 3.1 - w * 1.7 - t * 0.02);
-    return pow(1.0 - abs(v * 2.0 - 1.0), 7.0) * 0.7 + pow(1.0 - abs(v2 * 2.0 - 1.0), 9.0) * 0.4;
+  // Distance to the nearest cell edge (F2 - F1) for drifting Voronoi cells
+  float cellEdge(vec2 p, float time) {
+    vec2 i = floor(p), f = fract(p);
+    float f1 = 8.0, f2 = 8.0;
+    for (int y = -1; y <= 1; y++) {
+      for (int x = -1; x <= 1; x++) {
+        vec2 g = vec2(float(x), float(y));
+        vec2 jitter = 0.5 + 0.42 * sin(time + 6.2831 * hash2(i + g));
+        float dist = length(g + jitter - f);
+        if (dist < f1) { f2 = f1; f1 = dist; } else if (dist < f2) { f2 = dist; }
+      }
+    }
+    return f2 - f1;
+  }
+  float caustic(vec2 p, float time) {
+    if (u_noise > 0.5) {
+      vec2 w = vec2(noise(p * 0.9 + time * 0.05), noise(p * 0.9 + vec2(5.2, 1.3) - time * 0.05)) - 0.5;
+      p += w * u_warp;
+      float a = 1.0 - smoothstep(0.0, 0.6, cellEdge(p, time * 0.7));
+      float b = 1.0 - smoothstep(0.0, 0.6, cellEdge(p * 1.6 + vec2(3.1, 7.7), time * 0.5));
+      return pow(a, u_sharpness) + 0.55 * pow(b, u_sharpness);
+    }
+    vec2 w = vec2(noise(p * 1.3 + time * 0.05), noise(p * 1.3 + vec2(5.2, 1.3) - time * 0.04));
+    float v = noise(p * 2.0 + w * u_warp + time * 0.03);
+    float v2 = noise(p * 3.1 - w * u_warp * 0.8 - time * 0.02);
+    return pow(1.0 - abs(v * 2.0 - 1.0), u_sharpness * 1.4) * 0.7 + pow(1.0 - abs(v2 * 2.0 - 1.0), u_sharpness * 1.8) * 0.4;
   }
   void main() {
-    vec3 n = waterNormal();
+    vec3 n = normalAt(uv);
+    float time = t * u_speed;
     vec2 px = uv * res;
-    vec2 p = (px + vec2(0.0, scroll * 0.35)) / 420.0 + n.xy * 0.35;
-    vec3 top = vec3(0.933, 0.973, 0.953);
-    vec3 bottom = vec3(0.776, 0.906, 0.859);
-    vec3 col = mix(bottom, top, smoothstep(0.0, 1.0, uv.y));
-    col = mix(col, vec3(0.70, 0.87, 0.81), noise(p * 0.35 + t * 0.01) * 0.35);
-    col += caustic(p) * vec3(0.16, 0.20, 0.17);
+    vec2 p = (px + vec2(0.0, scroll * 0.35)) / u_scale + n.xy * u_refraction;
+    vec3 col = mix(u_bottom, u_top, smoothstep(0.0, 1.0, uv.y));
+    col = mix(col, u_bottom * 0.9, noise(p * 0.35 + time * 0.01) * 0.3);
+    // Cheap dispersion: red and blue see the pattern slightly shifted, more so where the water bends
+    vec2 split = (vec2(0.7, 0.45) + n.xy * 6.0) * u_chroma;
+    vec3 light = vec3(caustic(p + split, time), caustic(p, time), caustic(p - split, time));
+    col += light * u_caustics * vec3(1.0, 1.12, 1.05);
     float shade = dot(n, L) - L.z;
-    col += shade * vec3(0.9, 0.95, 0.92);
+    col += shade * u_shading * vec3(0.95, 1.0, 0.97);
     float spec = pow(max(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0)), 0.0), 90.0);
     col += spec * 0.35;
     o = vec4(col, 1.0);
   }`;
 
   const SURFACE = COMMON + `
+  uniform float u_surface, u_surfaceChroma;
   void main() {
-    vec3 n = waterNormal();
-    float shade = dot(n, L) - L.z;
-    float hi = clamp(shade * 2.8, 0.0, 0.6);
-    float lo = clamp(-shade * 1.6, 0.0, 0.32);
+    vec3 n = normalAt(uv);
+    vec2 split = (n.xy * 40.0 + vec2(1.0, 0.6)) * d * u_surfaceChroma;
+    vec3 shade = vec3(shadeAt(uv + split), shadeAt(uv), shadeAt(uv - split));
+    vec3 hi = clamp(shade * 2.8 * u_surface, 0.0, 0.6);
+    float lo = clamp(-shade.g * 1.6 * u_surface, 0.0, 0.32);
     vec3 dark = vec3(0.06, 0.29, 0.21);
-    o = vec4(vec3(1.0) * hi + dark * lo, hi + lo);
+    o = vec4(hi + dark * lo, max(max(hi.r, hi.g), hi.b) + lo);
   }`;
 
   class WaterLayer {
@@ -192,7 +245,10 @@
 
     step() {
       const gl = this.gl;
-      this.pass(this.update, u => gl.uniform2f(u.d, 1 / this.simW, 1 / this.simH));
+      this.pass(this.update, u => {
+        gl.uniform2f(u.d, 1 / this.simW, 1 / this.simH);
+        gl.uniform1f(u.u_damping, settings.damping);
+      });
     }
 
     draw(time, scroll, cssW, cssH) {
@@ -207,6 +263,12 @@
       if (u.res) gl.uniform2f(u.res, cssW, cssH);
       if (u.t) gl.uniform1f(u.t, time);
       if (u.scroll) gl.uniform1f(u.scroll, scroll);
+      for (const [key, value] of Object.entries(settings)) {
+        const location = u[`u_${key}`];
+        if (!location) continue;
+        if (Array.isArray(value)) gl.uniform3f(location, value[0], value[1], value[2]);
+        else gl.uniform1f(location, value);
+      }
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
   }
@@ -261,13 +323,13 @@
 
   let lastMove = null;
   addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return;
-    ripple(e.clientX, e.clientY, 22, 1.1);
+    if (e.button !== 0 || e.target.closest('.tune')) return;
+    ripple(e.clientX, e.clientY, 22, settings.click);
     pads.push(e.pageX, e.pageY);
   }, { passive: true });
 
   addEventListener('pointermove', (e) => {
-    if (e.pointerType !== 'mouse') return;
+    if (e.pointerType !== 'mouse' || e.target.closest('.tune')) return;
     if (!lastMove || Math.hypot(e.clientX - lastMove[0], e.clientY - lastMove[1]) > 14) {
       if (lastMove) ripple(e.clientX, e.clientY, 9, 0.07);
       lastMove = [e.clientX, e.clientY];
@@ -669,6 +731,104 @@
     layers.forEach(layer => layer.draw(time, scrollY, width, height));
   };
   requestAnimationFrame(loop);
+
+  // ---------- Tuning panel (add ?tune to the URL) ----------
+
+  if (tuning) {
+    const controls = [
+      ['noise', 'Noise', 'select', [['Cells', 1], ['Smooth', 0]]],
+      ['scale', 'Pattern size', 'range', 80, 900, 1],
+      ['speed', 'Drift speed', 'range', 0, 4, 0.01],
+      ['caustics', 'Caustic brightness', 'range', 0, 0.8, 0.005],
+      ['sharpness', 'Line sharpness', 'range', 1, 24, 0.1],
+      ['warp', 'Wobble', 'range', 0, 4, 0.01],
+      ['chroma', 'Caustic aberration', 'range', 0, 0.2, 0.001],
+      ['refraction', 'Ripple refraction', 'range', 0, 1.5, 0.01],
+      ['shading', 'Ripple shading (pond)', 'range', 0, 2.5, 0.01],
+      ['surface', 'Ripple shading (page)', 'range', 0, 2.5, 0.01],
+      ['surfaceChroma', 'Ripple aberration (page)', 'range', 0, 6, 0.05],
+      ['damping', 'Ripple length', 'range', 0.95, 0.998, 0.001],
+      ['click', 'Click strength', 'range', 0, 4, 0.05],
+      ['top', 'Water (top)', 'color'],
+      ['bottom', 'Water (bottom)', 'color'],
+    ];
+    const toHex = (rgb) => '#' + rgb.map(v => Math.round(v * 255).toString(16).padStart(2, '0')).join('');
+    const fromHex = (hex) => [1, 3, 5].map(i => +(parseInt(hex.slice(i, i + 2), 16) / 255).toFixed(3));
+    const save = () => localStorage.setItem('lilfloaty-water', JSON.stringify(settings));
+
+    const style = document.createElement('style');
+    style.textContent = `
+      .tune { position: fixed; right: 16px; bottom: 16px; z-index: 200; width: 290px; max-height: calc(100vh - 32px); overflow: auto;
+        padding: 14px 16px 16px; border-radius: 20px; font: 13px/1.3 var(--font); color: var(--ink);
+        background: rgba(255,255,255,0.86); border: 1px solid rgba(255,255,255,0.9); box-shadow: var(--shadow);
+        -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+      .tune.closed > :not(header) { display: none; }
+      .tune header { display: flex; align-items: center; justify-content: space-between; font-weight: 800; font-size: 14px; margin-bottom: 8px; }
+      .tune.closed header { margin: 0; }
+      .tune header button { border: 0; background: rgba(31,138,76,0.12); color: var(--leaf-deep); border-radius: 999px; padding: 4px 10px; font: 700 12px var(--font); cursor: pointer; }
+      .tune label { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; margin: 9px 0; font-weight: 600; }
+      .tune label output { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+      .tune input[type=range], .tune select { grid-column: 1 / -1; width: 100%; accent-color: var(--leaf); }
+      .tune input[type=color] { width: 44px; height: 24px; border: 0; padding: 0; background: none; }
+      .tune .row { display: flex; gap: 8px; margin-top: 12px; }
+      .tune .row button { flex: 1; border: 0; border-radius: 999px; padding: 9px 10px; font: 700 13px var(--font); cursor: pointer; background: var(--leaf); color: #fff; }
+      .tune .row button + button { background: rgba(31,138,76,0.12); color: var(--leaf-deep); }
+    `;
+    document.head.append(style);
+
+    const panel = document.createElement('section');
+    panel.className = 'tune';
+    panel.setAttribute('aria-label', 'Water settings');
+    panel.innerHTML = `<header>Water settings <button type="button" data-act="toggle">Hide</button></header>`;
+    const inputs = {};
+    for (const [key, label, type, a, b, step] of controls) {
+      const row = document.createElement('label');
+      if (type === 'select') {
+        row.innerHTML = `<span>${label}</span><output></output><select>${a.map(([name, v]) => `<option value="${v}">${name}</option>`).join('')}</select>`;
+      } else if (type === 'color') {
+        row.innerHTML = `<span>${label}</span><input type="color">`;
+      } else {
+        row.innerHTML = `<span>${label}</span><output></output><input type="range" min="${a}" max="${b}" step="${step}">`;
+      }
+      const input = row.querySelector('select, input');
+      const out = row.querySelector('output');
+      const show = () => {
+        if (type === 'color') input.value = toHex(settings[key]);
+        else input.value = settings[key];
+        if (out && type === 'range') out.textContent = (+settings[key]).toFixed(step < 0.01 ? 3 : step < 1 ? 2 : 0);
+      };
+      input.addEventListener('input', () => {
+        settings[key] = type === 'color' ? fromHex(input.value) : +input.value;
+        show();
+        save();
+        lastActivity = performance.now();
+      });
+      inputs[key] = show;
+      show();
+      panel.append(row);
+    }
+    const buttons = document.createElement('div');
+    buttons.className = 'row';
+    buttons.innerHTML = `<button type="button" data-act="copy">Copy settings</button><button type="button" data-act="reset">Reset</button>`;
+    panel.append(buttons);
+    panel.addEventListener('click', async (e) => {
+      const act = e.target.dataset && e.target.dataset.act;
+      if (act === 'toggle') {
+        panel.classList.toggle('closed');
+        e.target.textContent = panel.classList.contains('closed') ? 'Show' : 'Hide';
+      } else if (act === 'copy') {
+        const text = JSON.stringify(settings, null, 2);
+        try { await navigator.clipboard.writeText(text); e.target.textContent = 'Copied!'; }
+        catch (_) { prompt('Copy these settings:', text); }
+        setTimeout(() => { e.target.textContent = 'Copy settings'; }, 1500);
+      } else if (act === 'reset') {
+        Object.assign(settings, DEFAULTS);
+        localStorage.removeItem('lilfloaty-water');
+        Object.values(inputs).forEach(show => show());
+      }
+    });
+    document.body.append(panel);
+  }
 
   // A welcome ripple so people notice the water
   setTimeout(() => ripple(width * 0.5, height * 0.32, 40, 1.4), 500);
