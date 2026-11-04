@@ -142,8 +142,10 @@ img { max-width: 100%; display: block; -webkit-user-drag: none; user-select: non
 /* ---------- Pages (full-height sections) ---------- */
 
 .page {
-  min-height: 100vh;
-  min-height: 100svh;
+  /* Full-screen sections, capped so very tall viewports (like Google's renderer, which
+     stretches the window to the page height) don't balloon each section */
+  min-height: min(100vh, 1200px);
+  min-height: min(100svh, 1200px);
   display: flex; flex-direction: column; justify-content: center; align-items: center;
   padding: 110px 20px 70px;
 }
