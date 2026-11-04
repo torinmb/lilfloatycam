@@ -33,8 +33,9 @@
     sharpness: 6.7,      // Higher = thinner, crisper caustic lines
     warp: 1.2,           // How wobbly the caustic lines are
     chroma: 0.006,       // Chromatic aberration in the caustics
-    refraction: 0.07,    // How much ripples bend the caustics
+    refraction: 1.5,     // How much ripples bend the caustics
     shading: 0.9,        // Ripple light and shadow on the pond
+    lightMix: 0.5,       // 0 = one light from the top left (leaves a seam across each ring), 1 = crests lit evenly all round
     surface: 0.26,       // Ripple light and shadow drawn over the page
     surfaceChroma: 1.0,  // Chromatic aberration on the ripples over the page (fringe px per unit of slope / 20)
     surfaceChromaMax: 4, // Widest the ripple fringes get, in CSS px, however hard the click
@@ -103,7 +104,11 @@
                           (h(u - vec2(0.0, d.y)) - h(u + vec2(0.0, d.y))) * k, 1.0));
   }
   const vec3 L = normalize(vec3(-0.45, 0.65, 0.62));
-  float shadeAt(vec2 u) { return dot(normalAt(u), L) - L.z; }
+  uniform float u_lightMix;
+  // A single directional light can't shade the part of a ring whose slope runs across it, which shows
+  // as a seam through every ripple (bottom left to top right). Blending in height (crests light,
+  // troughs dark) lights the ring evenly all the way round.
+  float shadeAt(vec2 u) { return mix(dot(normalAt(u), L) - L.z, h(u), u_lightMix); }
   `;
 
   const POND = COMMON + `
@@ -154,7 +159,7 @@
     vec2 split = (vec2(0.7, 0.45) + n.xy * 6.0) * u_chroma;
     vec3 light = vec3(caustic(p + split, time), caustic(p, time), caustic(p - split, time));
     col += light * u_caustics * vec3(1.0, 1.12, 1.05);
-    float shade = dot(n, L) - L.z;
+    float shade = shadeAt(uv);
     col += shade * u_shading * vec3(0.95, 1.0, 0.97);
     float spec = pow(max(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0)), 0.0), 90.0);
     col += spec * 0.35;
@@ -768,6 +773,7 @@
       ['chroma', 'Caustic aberration', 'range', 0, 0.2, 0.001],
       ['refraction', 'Ripple refraction', 'range', 0, 1.5, 0.01],
       ['shading', 'Ripple shading (pond)', 'range', 0, 2.5, 0.01],
+      ['lightMix', 'Ripple light: side to even', 'range', 0, 1, 0.01],
       ['surface', 'Ripple shading (page)', 'range', 0, 2.5, 0.01],
       ['surfaceChroma', 'Ripple aberration (page)', 'range', 0, 6, 0.05],
       ['surfaceChromaMax', 'Ripple aberration max (px)', 'range', 0, 30, 0.5],
