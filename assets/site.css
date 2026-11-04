@@ -16,7 +16,7 @@
   --radius: 28px;
   --container: min(1080px, 100% - 40px);   /* Every block lines up to this width */
   --measure: 760px;                        /* Comfortable reading width for long text */
-  --font: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   color-scheme: light;
 }
 
