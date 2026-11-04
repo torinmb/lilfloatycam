@@ -41,6 +41,7 @@
     surfaceChromaMax: 4, // Widest the ripple fringes get, in CSS px, however hard the click
     damping: 0.976,      // How long ripples last (closer to 1 = longer)
     click: 2.4,          // Strength of a click ripple
+    scrollEase: 0.05,    // How quickly the caustics catch up with the scroll, per 60fps frame (1 = locked to the page)
     top: [0.933, 0.973, 0.953],
     bottom: [0.776, 0.906, 0.859],
   };
@@ -733,6 +734,7 @@
   let last = start;
   let carry = 0;
   let frame = 0;
+  let easedScroll = scrollY;
   const loop = (now) => {
     requestAnimationFrame(loop);
     const dt = Math.min(0.05, (now - last) / 1000);
@@ -742,8 +744,15 @@
     pads.step(dt, time);
     logo.step(dt);
 
+    // The caustics follow the scroll with easing, so a fast flick glides instead of jumping.
+    // Frame-rate independent: scrollEase is the fraction of the gap closed per 60fps frame.
+    const ease = Math.min(1, Math.max(0.001, settings.scrollEase));
+    easedScroll += (scrollY - easedScroll) * (1 - Math.pow(1 - ease, dt * 60));
+    const gliding = Math.abs(scrollY - easedScroll) > 0.1;
+    if (!gliding) easedScroll = scrollY;
+
     // When everything has settled, keep the caustics drifting at a gentler frame rate
-    const idle = now - lastActivity > 7000;
+    const idle = now - lastActivity > 7000 && !gliding;
     if (idle && frame % 3) return;
 
     while (queue.length) {
@@ -756,7 +765,7 @@
       carry -= steps;
       for (let i = 0; i < steps; i++) layers.forEach(layer => layer.step());
     }
-    layers.forEach(layer => layer.draw(time, scrollY, width, height));
+    layers.forEach(layer => layer.draw(time, easedScroll, width, height));
   };
   requestAnimationFrame(loop);
 
@@ -779,6 +788,7 @@
       ['surfaceChromaMax', 'Ripple aberration max (px)', 'range', 0, 30, 0.5],
       ['damping', 'Ripple length', 'range', 0.95, 0.998, 0.001],
       ['click', 'Click strength', 'range', 0, 4, 0.05],
+      ['scrollEase', 'Scroll easing (1 = none)', 'range', 0.02, 1, 0.01],
       ['top', 'Water (top)', 'color'],
       ['bottom', 'Water (bottom)', 'color'],
     ];
@@ -837,6 +847,29 @@
       show();
       panel.append(row);
     }
+    // Debug switches for hunting rendering problems while scrolling. Not saved.
+    const debugCss = document.createElement('style');
+    document.head.append(debugCss);
+    const debugRules = {
+      glass: ['Glass blur off', '* { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }'],
+      surface: ['Ripple overlay off', '#water-surface { display: none !important; }'],
+      pond: ['Pond off', '#water-pond { display: none !important; }'],
+      pads: ['Lily pads off', '#pads { display: none !important; }'],
+    };
+    const debug = document.createElement('fieldset');
+    debug.className = 'debug';
+    debug.innerHTML = '<legend>Debug (not saved)</legend>' + Object.entries(debugRules)
+      .map(([k, [label]]) => `<label><input type="checkbox" data-debug="${k}"> ${label}</label>`).join('');
+    debug.addEventListener('change', () => {
+      debugCss.textContent = [...debug.querySelectorAll('input:checked')].map(i => debugRules[i.dataset.debug][1]).join('\n');
+    });
+    panel.append(debug);
+    style.textContent += `
+      .tune .debug { border: 1px solid var(--glass-line); border-radius: 12px; margin: 12px 0 0; padding: 4px 10px 6px; }
+      .tune .debug legend { font-weight: 800; padding: 0 4px; }
+      .tune .debug label { display: flex; align-items: center; gap: 6px; margin: 6px 0; }
+    `;
+
     const buttons = document.createElement('div');
     buttons.className = 'row';
     buttons.innerHTML = `<button type="button" data-act="copy">Copy settings</button><button type="button" data-act="reset">Reset</button>`;
